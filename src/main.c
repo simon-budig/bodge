@@ -1,13 +1,5 @@
-/********************************* (C) COPYRIGHT *******************************
- * File Name          : Main.c
- * Author             : WCH
- * Version            : V1.1
- * Date               : 2022/01/25
- * Description        :
- *******************************************************************************
- * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
- * Attention: This software (modified or not) and binary are used for 
- * microcontroller manufactured by Nanjing Qinheng Microelectronics.
+/*******************************************************************************
+ * Copyright (c) 2024 Simon Budig
  ******************************************************************************/
 
 #include "CH58x_common.h"
@@ -18,29 +10,12 @@
 #define NUM_PINS 23
 
 static const uint8_t matrixpins[NUM_PINS] = {
-  PA(15),
-  PB(18),
-  PB(0),
-  PB(7),
-  PA(12),
-  PA(10),
-  PA(11),
-  PB(9),
-  PB(8),
-  PB(15),
-  PB(14),
-  PB(13),
-  PB(12),
-  PB(5),
-  PA(4),
-  PB(3),
-  PB(4),
-  PB(2),
-  PB(1),
-  PB(23),
-  PB(21),
-  PB(20),
-  PB(19),
+  PA(15), PB(18), PB(0),  PB(7),
+  PA(12), PA(10), PA(11), PB(9),
+  PB(8),  PB(15), PB(14), PB(13),
+  PB(12), PB(5),  PA(4),  PB(3),
+  PB(4),  PB(2),  PB(1),  PB(23),
+  PB(21), PB(20), PB(19),
 };
 
 static int matrix_mask_a = 0;
@@ -66,7 +41,7 @@ TMR0_IRQHandler (void)
       GPIOB_ResetBits (matrix_mask_b);
       GPIOB_ModeCfg (matrix_mask_b, GPIO_ModeIN_Floating);
 
-      cur_pos = (cur_pos + 1) % 484;
+      cur_pos = (cur_pos + 1) % ((NUM_PINS-1)*(NUM_PINS-1));
       if (!cur_pos)
         count++;
 
@@ -78,29 +53,31 @@ TMR0_IRQHandler (void)
       if (y >= x)
         y++;
 
-
       if (r)
         {
+          int xbits = (1 << (matrixpins[x] & 0x7f));
+          int ybits = (1 << (matrixpins[y] & 0x7f));
+
           if (matrixpins[x] & 0x80)
             {
-              GPIOA_SetBits (1 << (matrixpins[x] & 0x7f));
-              GPIOA_ModeCfg (1 << (matrixpins[x] & 0x7f), GPIO_ModeOut_PP_5mA);
+              GPIOA_SetBits (xbits);
+              GPIOA_ModeCfg (xbits, GPIO_ModeOut_PP_20mA);
             }
           else
             {
-              GPIOB_SetBits (1 << (matrixpins[x] & 0x7f));
-              GPIOB_ModeCfg (1 << (matrixpins[x] & 0x7f), GPIO_ModeOut_PP_5mA);
+              GPIOB_SetBits (xbits);
+              GPIOB_ModeCfg (xbits, GPIO_ModeOut_PP_20mA);
             }
 
           if (matrixpins[y] & 0x80)
             {
-              GPIOA_ResetBits (1 << (matrixpins[y] & 0x7f));
-              GPIOA_ModeCfg (1 << (matrixpins[y] & 0x7f), GPIO_ModeOut_PP_5mA);
+              GPIOA_ResetBits (ybits);
+              GPIOA_ModeCfg (ybits, GPIO_ModeOut_PP_20mA);
             }
           else
             {
-              GPIOB_ResetBits (1 << (matrixpins[y] & 0x7f));
-              GPIOB_ModeCfg (1 << (matrixpins[y] & 0x7f), GPIO_ModeOut_PP_5mA);
+              GPIOB_ResetBits (ybits);
+              GPIOB_ModeCfg (ybits, GPIO_ModeOut_PP_20mA);
             }
         }
     }
@@ -134,7 +111,7 @@ main ()
 
   board_pin_init ();
 
-  TMR0_TimerInit (2000);
+  TMR0_TimerInit (1500);
   TMR0_ITCfg (ENABLE, TMR0_3_IT_CYC_END);
   PFIC_EnableIRQ (TMR0_IRQn);
 
