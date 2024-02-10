@@ -43,6 +43,9 @@ static const uint8_t matrixpins[NUM_PINS] = {
   PB(19),
 };
 
+static int matrix_mask_a = 0;
+static int matrix_mask_b = 0;
+
 
 __INTERRUPT
 __HIGH_CODE
@@ -57,33 +60,11 @@ TMR0_IRQHandler (void)
   if (TMR0_GetITFlag (TMR0_3_IT_CYC_END))
     {
       TMR0_ClearITFlag (TMR0_3_IT_CYC_END);
-      x = cur_pos / (NUM_PINS-1);
-      y = cur_pos % (NUM_PINS-1);
 
-      if (y >= x)
-        y++;
-
-      if (matrixpins[x] & 0x80)
-        {
-          GPIOA_ResetBits (1 << (matrixpins[x] & 0x7f));
-          GPIOA_ModeCfg (1 << (matrixpins[x] & 0x7f), GPIO_ModeIN_Floating);
-        }
-      else
-        {
-          GPIOB_ResetBits (1 << (matrixpins[x] & 0x7f));
-          GPIOB_ModeCfg (1 << (matrixpins[x] & 0x7f), GPIO_ModeIN_Floating);
-        }
-
-      if (matrixpins[y] & 0x80)
-        {
-          GPIOA_ResetBits (1 << (matrixpins[y] & 0x7f));
-          GPIOA_ModeCfg (1 << (matrixpins[y] & 0x7f), GPIO_ModeIN_Floating);
-        }
-      else
-        {
-          GPIOB_ResetBits (1 << (matrixpins[y] & 0x7f));
-          GPIOB_ModeCfg (1 << (matrixpins[y] & 0x7f), GPIO_ModeIN_Floating);
-        }
+      GPIOA_ResetBits (matrix_mask_a);
+      GPIOA_ModeCfg (matrix_mask_a, GPIO_ModeIN_Floating);
+      GPIOB_ResetBits (matrix_mask_b);
+      GPIOB_ModeCfg (matrix_mask_b, GPIO_ModeIN_Floating);
 
       cur_pos = (cur_pos + 1) % 484;
       if (!cur_pos)
@@ -97,30 +78,30 @@ TMR0_IRQHandler (void)
       if (y >= x)
         y++;
 
-      if (matrixpins[x] & 0x80)
-        {
-          if (r)
-            GPIOA_SetBits (1 << (matrixpins[x] & 0x7f));
-          GPIOA_ModeCfg (1 << (matrixpins[x] & 0x7f), GPIO_ModeOut_PP_5mA);
-        }
-      else
-        {
-          if (r)
-            GPIOB_SetBits (1 << (matrixpins[x] & 0x7f));
-          GPIOB_ModeCfg (1 << (matrixpins[x] & 0x7f), GPIO_ModeOut_PP_5mA);
-        }
 
-      if (matrixpins[y] & 0x80)
+      if (r)
         {
-          if (r)
-            GPIOA_ResetBits (1 << (matrixpins[y] & 0x7f));
-          GPIOA_ModeCfg (1 << (matrixpins[y] & 0x7f), GPIO_ModeOut_PP_5mA);
-        }
-      else
-        {
-          if (r)
-            GPIOB_ResetBits (1 << (matrixpins[y] & 0x7f));
-          GPIOB_ModeCfg (1 << (matrixpins[y] & 0x7f), GPIO_ModeOut_PP_5mA);
+          if (matrixpins[x] & 0x80)
+            {
+              GPIOA_SetBits (1 << (matrixpins[x] & 0x7f));
+              GPIOA_ModeCfg (1 << (matrixpins[x] & 0x7f), GPIO_ModeOut_PP_5mA);
+            }
+          else
+            {
+              GPIOB_SetBits (1 << (matrixpins[x] & 0x7f));
+              GPIOB_ModeCfg (1 << (matrixpins[x] & 0x7f), GPIO_ModeOut_PP_5mA);
+            }
+
+          if (matrixpins[y] & 0x80)
+            {
+              GPIOA_ResetBits (1 << (matrixpins[y] & 0x7f));
+              GPIOA_ModeCfg (1 << (matrixpins[y] & 0x7f), GPIO_ModeOut_PP_5mA);
+            }
+          else
+            {
+              GPIOB_ResetBits (1 << (matrixpins[y] & 0x7f));
+              GPIOB_ModeCfg (1 << (matrixpins[y] & 0x7f), GPIO_ModeOut_PP_5mA);
+            }
         }
     }
 }
@@ -130,21 +111,19 @@ void
 board_pin_init (void)
 {
   int i;
-  int mask_a = 0;
-  int mask_b = 0;
 
   for (i = 0; i < NUM_PINS; i++)
     {
       if (matrixpins[i] & 0x80)
-        mask_a |= (1 << (matrixpins[i] & 0x7f));
+        matrix_mask_a |= (1 << (matrixpins[i] & 0x7f));
       else
-        mask_b |= (1 << (matrixpins[i] & 0x7f));
+        matrix_mask_b |= (1 << (matrixpins[i] & 0x7f));
     }
 
-  GPIOA_ResetBits (mask_a);
-  GPIOA_ModeCfg (mask_a, GPIO_ModeIN_Floating);
-  GPIOB_ResetBits (mask_b);
-  GPIOB_ModeCfg (mask_b, GPIO_ModeIN_Floating);
+  GPIOA_ResetBits (matrix_mask_a);
+  GPIOA_ModeCfg (matrix_mask_a, GPIO_ModeIN_Floating);
+  GPIOB_ResetBits (matrix_mask_b);
+  GPIOB_ModeCfg (matrix_mask_b, GPIO_ModeIN_Floating);
 }
 
 
