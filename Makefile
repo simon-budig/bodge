@@ -39,6 +39,7 @@ C_LIB_SOURCES =   \
 
 C_SOURCES = \
 	$(C_LIB_SOURCES) \
+	src/usb-cdc.c    \
 	src/main.c
 
 

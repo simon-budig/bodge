@@ -115,9 +115,13 @@ main ()
   TMR0_ITCfg (ENABLE, TMR0_3_IT_CYC_END);
   PFIC_EnableIRQ (TMR0_IRQn);
 
+  InitUSBDefPara ();
+  InitUSBDevice ();
+  PFIC_EnableIRQ (USB_IRQn);
+
   while (1)
     {
-      mDelaymS (200);
+      USB_IRQProcessHandler ();
     }
 }
 
