@@ -4,6 +4,7 @@
  * microcontroller manufactured by Nanjing Qinheng Microelectronics.
  ****************************************************************************/
 
+#include <stdio.h>
 #include "CH58x_common.h"
 
 #define dg_log printf
@@ -97,12 +98,12 @@ DevInfo_Parm  devinf;
 UINT8 SetupReqCode, SetupLen;
 
 /* Buffers for endpoint hardware and software operations */
-__aligned(4) UINT8  Ep0Buffer[MAX_PACKET_SIZE];     // Endpoint 0 Transmit and receive common Endpoint 4 OUT & IN
+__aligned (4) UINT8  Ep0Buffer[MAX_PACKET_SIZE];     // Endpoint 0 Transmit and receive common Endpoint 4 OUT & IN
 
 // The upload address of endpoint 4
-__aligned(4) UINT8  Ep1Buffer[MAX_PACKET_SIZE];     // IN
-__aligned(4) UINT8  Ep2Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
-__aligned(4) UINT8  Ep3Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
+__aligned (4) UINT8  Ep1Buffer[MAX_PACKET_SIZE];     // IN
+__aligned (4) UINT8  Ep2Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
+__aligned (4) UINT8  Ep3Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
 
 // Line Code structure
 typedef struct __PACKED _LINE_CODE
@@ -159,7 +160,7 @@ typedef struct _USB_SETUP_REQ_ {
     UINT8 wLengthH;
 } USB_SETUP_REQ_t;
 
-#define UsbSetupBuf     ((USB_SETUP_REQ_t *)Ep0Buffer) // USB_SETUP_REQ_t USB_SETUP_REQ_t
+#define UsbSetupBuf     ((USB_SETUP_REQ_t *) Ep0Buffer) // USB_SETUP_REQ_t USB_SETUP_REQ_t
 
 /* USB cache definition, all endpoints are defined */
 /* Endpoint 1 -- IN status */
@@ -168,7 +169,7 @@ UINT8 Ep1DataINFlag = 0;
 /* Endpoint 1 transmits data down */
 UINT8 Ep1DataOUTFlag = 0;
 UINT8 Ep1DataOUTLen  = 0;
-__aligned(4) UINT8 Ep1OUTDataBuf[MAX_PACKET_SIZE];
+__aligned (4) UINT8 Ep1OUTDataBuf[MAX_PACKET_SIZE];
 
 /* Endpoint 2 -- IN Status */
 UINT8 Ep2DataINFlag = 0;
@@ -176,7 +177,7 @@ UINT8 Ep2DataINFlag = 0;
 /* Endpoint 2 uploads data down */
 UINT8 Ep2DataOUTFlag = 0;
 UINT8 Ep2DataOUTLen  = 0;
-__aligned(4) UINT8 Ep2OUTDataBuf[MAX_PACKET_SIZE];
+__aligned (4) UINT8 Ep2OUTDataBuf[MAX_PACKET_SIZE];
 
 /* Save the status of USB interrupts - > change the operation mode to several groups */
 #define USB_IRQ_FLAG_NUM     4
@@ -219,7 +220,7 @@ const UINT8 *pDescr;
 
 
 /* Endpoint state setting function */
-void USBDevEPnINSetStatus(UINT8 ep_num, UINT8 type, UINT8 sta);
+void USBDevEPnINSetStatus (UINT8 ep_num, UINT8 type, UINT8 sta);
 
 /*******************************************************************************
 * Function Name  : CH341RegWrite
@@ -229,7 +230,7 @@ void USBDevEPnINSetStatus(UINT8 ep_num, UINT8 type, UINT8 sta);
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void CH341RegWrite(UINT8 reg_add,UINT8 reg_val)
+void CH341RegWrite (UINT8 reg_add, UINT8 reg_val)
 {
   UINT8 find_idx;
   UINT8 find_flag;
@@ -237,21 +238,21 @@ void CH341RegWrite(UINT8 reg_add,UINT8 reg_val)
 
   find_flag = 0;
   find_idx = 0;
-  for(i=0; i<CH341_REG_NUM; i++)
+  for (i = 0; i < CH341_REG_NUM; i++)
   {
-    if(CH341_Reg_Add[i] == reg_add)
+    if (CH341_Reg_Add[i] == reg_add)
     {
       find_flag = 1;
       break;
     }
-    if(CH341_Reg_Add[i] == 0xff)
+    if (CH341_Reg_Add[i] == 0xff)
     {
       find_flag = 0;
       break;
     }
   }
   find_idx = i;
-  if(find_flag)
+  if (find_flag)
   {
     CH341_Reg_val[find_idx] = reg_val;
   }
@@ -261,7 +262,7 @@ void CH341RegWrite(UINT8 reg_add,UINT8 reg_val)
     CH341_Reg_val[find_idx] = reg_val;
   }
 
-  switch(reg_add)
+  switch (reg_add)
   {
     case 0x06:break; // IO
     case 0x07:break; // IO
@@ -275,8 +276,8 @@ void CH341RegWrite(UINT8 reg_add,UINT8 reg_val)
 
       reg_uart_ctrl = reg_val;
       /* Break bit */
-      break_en = (reg_uart_ctrl & 0x40)?(0):(1);
-//      SetUART0BreakENStatus(break_en);
+      break_en = (reg_uart_ctrl & 0x40) ? (0) : (1);
+//      SetUART0BreakENStatus (break_en);
 
       data_bit_val = reg_uart_ctrl & 0x03;
       if      (data_bit_val == 0x00) data_bit_val = HAL_UART_5_BITS_PER_CHAR;
@@ -300,7 +301,7 @@ void CH341RegWrite(UINT8 reg_add,UINT8 reg_val)
       Uart0Para.ParityType = parity_val;
       Uart0Para.DataBits   = data_bit_val;
 
-      dg_log("CH341 set para:%d %d %d break:%02x\r\n",data_bit_val,(int)stop_bit_val,parity_val,break_en);
+      dg_log ("CH341 set para:%d %d %d break:%02x\r\n", data_bit_val, (int) stop_bit_val, parity_val, break_en);
 
       // Set the registers directly
       VENSer0ParaChange = 1;
@@ -309,8 +310,8 @@ void CH341RegWrite(UINT8 reg_add,UINT8 reg_val)
     case 0x25: break;
     case 0x27:
     {
-      dg_log("modem set:%02x\r\n",reg_val);
-//      SetUART0ModemVendorSta(reg_val);
+      dg_log ("modem set:%02x\r\n", reg_val);
+//      SetUART0ModemVendorSta (reg_val);
       break;
     }
   }
@@ -324,22 +325,22 @@ void CH341RegWrite(UINT8 reg_add,UINT8 reg_val)
 * Output         : None
 * Return         : Register exists
 *******************************************************************************/
-UINT8 CH341RegRead(UINT8 reg_add,UINT8 *reg_val)
+UINT8 CH341RegRead (UINT8 reg_add, UINT8 *reg_val)
 {
   UINT8 find_flag;
   UINT8 i;
 
   find_flag = 0;
   *reg_val = 0;
-  for(i=0; i<CH341_REG_NUM; i++)
+  for (i = 0; i < CH341_REG_NUM; i++)
   {
-    if(CH341_Reg_Add[i] == reg_add)   // Locate the register with the same address
+    if (CH341_Reg_Add[i] == reg_add)   // Locate the register with the same address
     {
       find_flag = 1;
       *reg_val = CH341_Reg_val[i];
       break;
     }
-    if(CH341_Reg_Add[i] == 0xff)      // Find the first empty one at present
+    if (CH341_Reg_Add[i] == 0xff)      // Find the first empty one at present
     {
       find_flag = 0;
       *reg_val = 0x00;
@@ -347,7 +348,7 @@ UINT8 CH341RegRead(UINT8 reg_add,UINT8 *reg_val)
     }
   }
 
-  switch(reg_add)
+  switch (reg_add)
   {
     case 0x06:
     {
@@ -414,30 +415,30 @@ UINT8 CH341RegRead(UINT8 reg_add,UINT8 *reg_val)
 #define DEF_BIT_USB_HS          0x80   /* USB high-speed, full-speed logo */
 
 /* Interrupt handlers */
-__attribute__((interrupt("WCH-Interrupt-fast")))
-__attribute__((section(".highcode")))
-void USB_IRQHandler(void)
+__attribute__ ((interrupt ("WCH-Interrupt-fast")))
+__attribute__ ((section (".highcode")))
+void USB_IRQHandler (void)
 {
   UINT8   i;
   UINT8   j;
 
-  if(R8_USB_INT_FG & RB_UIF_TRANSFER)
+  if (R8_USB_INT_FG & RB_UIF_TRANSFER)
   {
     /* Except for the setup package processing */
-    if((R8_USB_INT_ST & MASK_UIS_TOKEN) != MASK_UIS_TOKEN){     // Non-idle
+    if ((R8_USB_INT_ST & MASK_UIS_TOKEN) != MASK_UIS_TOKEN) {     // Non-idle
       /* Write directly */
       usb_irq_flag[usb_irq_w_idx] = 1;
       usb_irq_pid[usb_irq_w_idx]  = R8_USB_INT_ST;  // & 0x3f;// (0x30 | 0x0F);
       usb_irq_len[usb_irq_w_idx]  = R8_USB_RX_LEN;
 
-      switch(usb_irq_pid[usb_irq_w_idx]& 0x3f){   // Analyze the current endpoint
+      switch (usb_irq_pid[usb_irq_w_idx]& 0x3f) {   // Analyze the current endpoint
         case UIS_TOKEN_OUT | 2:{
-          if( R8_USB_INT_FG & RB_U_TOG_OK ){   // Out-of-sync packets are dropped
+          if (R8_USB_INT_FG & RB_U_TOG_OK) {   // Out-of-sync packets are dropped
             R8_UEP2_CTRL ^=  RB_UEP_R_TOG;
             R8_UEP2_CTRL = (R8_UEP2_CTRL & 0xf3) | 0x08; // OUT_NAK
             /* Save the data */
-            for(j=0; j<(MAX_PACKET_SIZE/4); j++)
-              ((UINT32 *)Ep2OUTDataBuf)[j] = ((UINT32 *)Ep2Buffer)[j];
+            for (j = 0; j < (MAX_PACKET_SIZE/4); j++)
+              ((UINT32 *) Ep2OUTDataBuf)[j] = ((UINT32 *) Ep2Buffer)[j];
           }
           else usb_irq_flag[usb_irq_w_idx] = 0;
         }break;
@@ -446,12 +447,12 @@ void USB_IRQHandler(void)
           R8_UEP2_CTRL = (R8_UEP2_CTRL & 0xfc) | IN_NAK; // IN_NAK
         }break;
         case UIS_TOKEN_OUT | 1:{
-          if( R8_USB_INT_FG & RB_U_TOG_OK ){   // Out-of-sync packets are dropped
+          if (R8_USB_INT_FG & RB_U_TOG_OK) {   // Out-of-sync packets are dropped
             R8_UEP1_CTRL ^=  RB_UEP_R_TOG;
             R8_UEP1_CTRL = (R8_UEP1_CTRL & 0xf3) | 0x08; // OUT_NAK
             /* Save the data */
-            for(j=0; j<(MAX_PACKET_SIZE/4); j++)
-              ((UINT32 *)Ep1OUTDataBuf)[j] = ((UINT32 *)Ep1Buffer)[j];
+            for (j = 0; j < (MAX_PACKET_SIZE/4); j++)
+              ((UINT32 *) Ep1OUTDataBuf)[j] = ((UINT32 *) Ep1Buffer)[j];
           }
           else usb_irq_flag[usb_irq_w_idx] = 0;
         }break;
@@ -460,7 +461,7 @@ void USB_IRQHandler(void)
           R8_UEP1_CTRL = (R8_UEP1_CTRL & 0xfc) | IN_NAK; // IN_NAK
         }break;
         case UIS_TOKEN_OUT | 0:{    // endpoint 0
-          if( R8_USB_INT_FG & RB_U_TOG_OK )   // Out-of-sync packets are dropped
+          if (R8_USB_INT_FG & RB_U_TOG_OK)   // Out-of-sync packets are dropped
             R8_UEP0_CTRL = (R8_UEP0_CTRL & 0xf3) | 0x08; // OUT_NAK
           else usb_irq_flag[usb_irq_w_idx] = 0;
         }break;
@@ -470,16 +471,16 @@ void USB_IRQHandler(void)
       }
 
       /* Switch to the next write address */
-      if(usb_irq_flag[usb_irq_w_idx]){
+      if (usb_irq_flag[usb_irq_w_idx]) {
         usb_irq_w_idx++;
-        if(usb_irq_w_idx >= USB_IRQ_FLAG_NUM) usb_irq_w_idx = 0;
+        if (usb_irq_w_idx >= USB_IRQ_FLAG_NUM) usb_irq_w_idx = 0;
       }
 
       R8_USB_INT_FG = RB_UIF_TRANSFER;
     }
 
     /* setup package processing */
-    if(R8_USB_INT_ST & RB_UIS_SETUP_ACT){
+    if (R8_USB_INT_ST & RB_UIS_SETUP_ACT) {
       /* Convergence with the previous process - UIS_TOKEN_SETUP */
       /* Write directly */
       usb_irq_flag[usb_irq_w_idx] = 1;
@@ -487,7 +488,7 @@ void USB_IRQHandler(void)
       usb_irq_len[usb_irq_w_idx]  = 8;
       /* Switch to the next write address */
       usb_irq_w_idx++;
-      if(usb_irq_w_idx >= USB_IRQ_FLAG_NUM) usb_irq_w_idx = 0;
+      if (usb_irq_w_idx >= USB_IRQ_FLAG_NUM) usb_irq_w_idx = 0;
 
       R8_USB_INT_FG = RB_UIF_TRANSFER;
     }
@@ -532,7 +533,7 @@ UINT8 Ep4DataOUTFlag = 0;
 #define DEF_SERIAL_STATE               0x20
 
 
-void USB_IRQProcessHandler( void )   /* USB interrupt service program */
+void USB_IRQProcessHandler (void)   /* USB interrupt service program */
 {
   static  PUINT8  pDescr;
   UINT8 len;
@@ -543,16 +544,16 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
   UINT8   i;
   UINT8   ep_sta;
 
-  // for(i=0; i<USB_IRQ_FLAG_NUM; i++)
+  // for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
   {
     i = usb_irq_r_idx;
 
-    if(usb_irq_flag[i])
+    if (usb_irq_flag[i])
     {
       usb_irq_r_idx++;
-      if(usb_irq_r_idx >= USB_IRQ_FLAG_NUM) usb_irq_r_idx = 0;
+      if (usb_irq_r_idx >= USB_IRQ_FLAG_NUM) usb_irq_r_idx = 0;
 
-      switch ( usb_irq_pid[i] & 0x3f )   // Analyze the action token and endpoint number
+      switch (usb_irq_pid[i] & 0x3f)   // Analyze the action token and endpoint number
       {
         case UIS_TOKEN_IN | 4:  // endpoint 4# Batch endpoint upload completed
         {
@@ -566,21 +567,21 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
         }
         case UIS_TOKEN_OUT | 2:    // endpoint 2# The batch endpoint upload is complete
         {
-          dg_log("usb_rec\n");
+          dg_log ("usb_rec\n");
           len = usb_irq_len[i];
           {
             // Ep2OUTDataBuf
-            for(int i = 0;i<len;i++)
-            dg_log("%02x  ",Ep2OUTDataBuf[i]);
-            dg_log("\n");
+            for (int i = 0; i < len; i++)
+              dg_log ("%02x  ", Ep2OUTDataBuf[i]);
+            dg_log ("\n");
 
             // Data delivery of CH341
             Ep2DataOUTFlag = 1;
             Ep2DataOUTLen = len;
             VENSer0SendFlag = 1;
-            PFIC_DisableIRQ(USB_IRQn);
+            PFIC_DisableIRQ (USB_IRQn);
             R8_UEP2_CTRL = R8_UEP2_CTRL & 0xf3; // OUT_ACK
-            PFIC_EnableIRQ(USB_IRQn);
+            PFIC_EnableIRQ (USB_IRQn);
           }
           break;
         }
@@ -591,20 +592,20 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
         }
         case UIS_TOKEN_OUT | 1:    // endpoint 1# Batch endpoint upload is complete
         {
-          dg_log("usb_rec\n");
+          dg_log ("usb_rec\n");
           len = usb_irq_len[i];
           // Ep1OUTDataBuf
-          for(int i = 0;i<len;i++)
-          dg_log("%02x  ",Ep1OUTDataBuf[i]);
-          dg_log("\n");
+          for (int i = 0; i < len; i++)
+            dg_log ("%02x  ", Ep1OUTDataBuf[i]);
+          dg_log ("\n");
 
           // Data delivery of CH341
           Ep1DataOUTFlag = 1;
           Ep1DataOUTLen = len;
           VENSer0SendFlag = 1;
-          PFIC_DisableIRQ(USB_IRQn);
+          PFIC_DisableIRQ (USB_IRQn);
           R8_UEP1_CTRL = R8_UEP1_CTRL & 0xf3; // OUT_ACK
-          PFIC_EnableIRQ(USB_IRQn);
+          PFIC_EnableIRQ (USB_IRQn);
           break;
         }
         case UIS_TOKEN_IN | 1:   // endpoint 1# Interrupt the endpoint upload is complete
@@ -615,22 +616,22 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
         case UIS_TOKEN_SETUP | 0:    // endpoint 0# SETUP
         {
           len = usb_irq_len[i];
-          if(len == sizeof(USB_SETUP_REQ))
+          if (len == sizeof (USB_SETUP_REQ))
           {
             SetupLen = UsbSetupBuf->wLengthL;
-            if(UsbSetupBuf->wLengthH) SetupLen = 0xff;
+            if (UsbSetupBuf->wLengthH) SetupLen = 0xff;
 
             len = 0;                                                 // The default is Succeeded and the upload is 0 length
             SetupReqCode = UsbSetupBuf->bRequest;
 
             /* Data direction */
             data_dir = USB_REQ_TYP_OUT;
-            if(UsbSetupBuf->bRequestType & USB_REQ_TYP_IN) data_dir = USB_REQ_TYP_IN;
+            if (UsbSetupBuf->bRequestType & USB_REQ_TYP_IN) data_dir = USB_REQ_TYP_IN;
 
             /* Vendor request */
-            if( ( UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK ) == USB_REQ_TYP_VENDOR )
+            if (( UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_VENDOR)
             {
-              switch(SetupReqCode)
+              switch (SetupReqCode)
               {
                 case DEF_VEN_DEBUG_WRITE:  // Write two sets of 0X9A
                 {
@@ -648,20 +649,20 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                   write_reg_val2 = Ep0Buffer[5];
 
                   /* This group is the register that sets the baud rate */
-                  if((write_reg_add1 == 0x12)&&(write_reg_add2 == 0x13))
+                  if ((write_reg_add1 == 0x12) && (write_reg_add2 == 0x13))
                   {
                     /* Baud rate processing uses calculated values */
-                    if((UsbSetupBuf->wIndexL==0x87)&&(UsbSetupBuf->wIndexH==0xf3))
+                    if ((UsbSetupBuf->wIndexL==0x87) && (UsbSetupBuf->wIndexH==0xf3))
                     {
                       bps = 921600;  // 13 * 921600 = 11980800
                     }
-                    else if((UsbSetupBuf->wIndexL==0x87)&&(UsbSetupBuf->wIndexH==0xd9))
+                    else if ((UsbSetupBuf->wIndexL==0x87) && (UsbSetupBuf->wIndexH==0xd9))
                     {
                       bps = 307200;  // 39 * 307200 = 11980800
                     }
 
                     // System Frequency: 36923077
-                    else if( UsbSetupBuf->wIndexL == 0x88 )
+                    else if (UsbSetupBuf->wIndexL == 0x88)
                     {
                       UINT32 CalClock;
                       UINT8 CalDiv;
@@ -670,7 +671,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                       CalDiv = 0 - UsbSetupBuf->wIndexH;
                       bps = CalClock / CalDiv;
                     }
-                    else if( UsbSetupBuf->wIndexL == 0x89 )
+                    else if (UsbSetupBuf->wIndexL == 0x89)
                     {
                       UINT32 CalClock;
                       UINT8 CalDiv;
@@ -680,7 +681,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                       bps = CalClock / CalDiv;
                     }
                     // System frequency: 32000000
-                    else if( UsbSetupBuf->wIndexL == 0x8A )
+                    else if (UsbSetupBuf->wIndexL == 0x8A)
                     {
                       UINT32 CalClock;
                       UINT8 CalDiv;
@@ -689,7 +690,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                       CalDiv = 0 - UsbSetupBuf->wIndexH;
                       bps = CalClock / CalDiv;
                     }
-                    else if( UsbSetupBuf->wIndexL == 0x8B )
+                    else if (UsbSetupBuf->wIndexL == 0x8B)
                     {
                       UINT32 CalClock;
                       UINT8 CalDiv;
@@ -704,25 +705,25 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                       UINT8 CalDiv;
 
                       // 115384
-                      if((UsbSetupBuf->wIndexL & 0x7f) == 3)
+                      if ((UsbSetupBuf->wIndexL & 0x7f) == 3)
                       {
                         CalClock = 6000000;
                         CalDiv = 0 - UsbSetupBuf->wIndexH;
                         bps = CalClock / CalDiv;
                       }
-                      else if((UsbSetupBuf->wIndexL & 0x7f) == 2)
+                      else if ((UsbSetupBuf->wIndexL & 0x7f) == 2)
                       {
                         CalClock = 750000;  // 6000000 / 8
                         CalDiv = 0 - UsbSetupBuf->wIndexH;
                         bps = CalClock / CalDiv;
                       }
-                      else if((UsbSetupBuf->wIndexL & 0x7f) == 1)
+                      else if ((UsbSetupBuf->wIndexL & 0x7f) == 1)
                       {
                         CalClock = 93750; // Divide by 64
                         CalDiv = 0 - UsbSetupBuf->wIndexH;
                         bps = CalClock / CalDiv;
                       }
-                      else if((UsbSetupBuf->wIndexL & 0x7f) == 0)
+                      else if ((UsbSetupBuf->wIndexL & 0x7f) == 0)
                       {
                         CalClock = 11719;  // About 512
                         CalDiv = 0 - UsbSetupBuf->wIndexH;
@@ -734,13 +735,13 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                       }
                     }
                     Uart0Para.BaudRate = bps;
-                    dg_log("CH341 set bps:%d\r\n",(int)bps);
-                    // UART0BpsSet(bps);
+                    dg_log ("CH341 set bps:%d\r\n", (int) bps);
+                    // UART0BpsSet (bps);
                   }
                   else
                   {
-                    CH341RegWrite(write_reg_add1,write_reg_val1);
-                    CH341RegWrite(write_reg_add2,write_reg_val2);
+                    CH341RegWrite (write_reg_add1, write_reg_val1);
+                    CH341RegWrite (write_reg_add2, write_reg_val2);
                   }
 
                   break;
@@ -755,15 +756,15 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                   read_reg_add1 = UsbSetupBuf->wValueL;
                   read_reg_add2 = UsbSetupBuf->wValueH;
 
-                  CH341RegRead(read_reg_add1,&read_reg_val1);
-                  CH341RegRead(read_reg_add2,&read_reg_val2);
+                  CH341RegRead (read_reg_add1, &read_reg_val1);
+                  CH341RegRead (read_reg_add2, &read_reg_val2);
 
                   len = 2;
                   pDescr = buf;
                   buf[0] = read_reg_val1;
                   buf[1] = read_reg_val2;
                   SetupLen = len;
-                  memcpy(Ep0Buffer, pDescr, len);
+                  memcpy (Ep0Buffer, pDescr, len);
 
                   break;
                 }
@@ -780,7 +781,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
 
                   len = 0;
 
-                  if(Ep0Buffer[2] & 0x80)
+                  if (Ep0Buffer[2] & 0x80)
                   {
                     reg_uart_ctrl = Ep0Buffer[3];
 
@@ -807,13 +808,13 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                     Uart0Para.DataBits = data_bit_val;
 
                     // Set the registers directly
-                   // UART0ParaSet(data_bit_val, stop_bit_val,parity_val);
+                   // UART0ParaSet (data_bit_val, stop_bit_val, parity_val);
 
                     uart_set_m = 0;
                     uart_reg1_val = UsbSetupBuf->wIndexL;
                     uart_reg2_val = UsbSetupBuf->wIndexH;
 
-                    if(uart_reg1_val & (1<<6))  // Judgment No. 6
+                    if (uart_reg1_val & (1<<6))  // Judgment No. 6
                     {
                       uart_set_m = 1;
                     }
@@ -823,20 +824,20 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                       uart_reg1_val = uart_reg1_val & 0xC7;
                     }
 
-                    if(uart_set_m)
+                    if (uart_set_m)
                     {
                       /* Baud rate processing uses calculated values */
-                      if((uart_reg1_val == 0x87)&&(uart_reg2_val == 0xf3))
+                      if ((uart_reg1_val == 0x87) && (uart_reg2_val == 0xf3))
                       {
                         bps = 921600;  // 13 * 921600 = 11980800
                       }
-                      else if((uart_reg1_val == 0x87)&&(uart_reg2_val == 0xd9))
+                      else if ((uart_reg1_val == 0x87) && (uart_reg2_val == 0xd9))
                       {
                         bps = 307200;  // 39 * 307200 = 11980800
                       }
 
                       // System Frequency: 36923077
-                      else if( uart_reg1_val == 0xC8 )
+                      else if (uart_reg1_val == 0xC8)
                       {
                         UINT32 CalClock;
                         UINT8 CalDiv;
@@ -845,7 +846,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                         CalDiv = 0 - uart_reg2_val;
                         bps = CalClock / CalDiv;
                       }
-                      else if( uart_reg1_val == 0xC9 )
+                      else if (uart_reg1_val == 0xC9)
                       {
                         UINT32 CalClock;
                         UINT8 CalDiv;
@@ -855,7 +856,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                         bps = CalClock / CalDiv;
                       }
                       // System frequency: 32000000
-                      else if( uart_reg1_val == 0xCA )
+                      else if (uart_reg1_val == 0xCA)
                       {
                         UINT32 CalClock;
                         UINT8 CalDiv;
@@ -864,7 +865,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                         CalDiv = 0 - uart_reg2_val;
                         bps = CalClock / CalDiv;
                       }
-                      else if( uart_reg1_val == 0xCB )
+                      else if (uart_reg1_val == 0xCB)
                       {
                         UINT32 CalClock;
                         UINT8 CalDiv;
@@ -879,25 +880,25 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                         UINT8 CalDiv;
 
                         // 115384
-                        if((uart_reg1_val & 0x7f) == 3)
+                        if ((uart_reg1_val & 0x7f) == 3)
                         {
                           CalClock = 6000000;
                           CalDiv = 0 - uart_reg2_val;
                           bps = CalClock / CalDiv;
                         }
-                        else if((uart_reg1_val & 0x7f) == 2)
+                        else if ((uart_reg1_val & 0x7f) == 2)
                         {
                           CalClock = 750000;  // 6000000 / 8
                           CalDiv = 0 - uart_reg2_val;
                           bps = CalClock / CalDiv;
                         }
-                        else if((uart_reg1_val & 0x7f) == 1)
+                        else if ((uart_reg1_val & 0x7f) == 1)
                         {
                           CalClock = 93750; // Divide by 64
                           CalDiv = 0 - uart_reg2_val;
                           bps = CalClock / CalDiv;
                         }
-                        else if((uart_reg1_val & 0x7f) == 0)
+                        else if ((uart_reg1_val & 0x7f) == 0)
                         {
                           CalClock = 11719;  // About 512
                           CalDiv = 0 - uart_reg2_val;
@@ -909,8 +910,8 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                         }
                       }
                       Uart0Para.BaudRate = bps;
-                      dg_log("CH341 set bps:%d\r\n",(int)bps);
-                      // UART0BpsSet(bps);
+                      dg_log ("CH341 set bps:%d\r\n", (int) bps);
+                      // UART0BpsSet (bps);
                     }
                   }
                   break;
@@ -921,7 +922,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
 
                   len = 0;
                   reg_pb_out = Ep0Buffer[2];
-                  if(reg_pb_out & (1<<4)) UART0_OUT_Val = 1;
+                  if (reg_pb_out & (1<<4)) UART0_OUT_Val = 1;
                   else UART0_OUT_Val = 0;
                   break;
                 }
@@ -950,7 +951,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                   buf[0] = 0x30;
                   buf[1] = 0x00;
                   SetupLen = len;
-                  memcpy( Ep0Buffer, pDescr, len );
+                  memcpy (Ep0Buffer, pDescr, len);
 
                   break;
                 }
@@ -961,43 +962,43 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
               }
             }
             // Standard Request
-            else if((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_STANDARD)
+            else if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_STANDARD)
             {
-              switch( SetupReqCode )  // Request code
+              switch (SetupReqCode)  // Request code
               {
                 case USB_GET_DESCRIPTOR:  // Get a descriptor
                 {
-                  switch( UsbSetupBuf->wValueH )
+                  switch (UsbSetupBuf->wValueH)
                   {
                     case 1: // Device descriptor
                     {
-                      memcpy(ep0_send_buf,
+                      memcpy (ep0_send_buf,
                              &TAB_USB_CDC_DEV_DES[0],
-                             sizeof( TAB_USB_CDC_DEV_DES ));
+                             sizeof (TAB_USB_CDC_DEV_DES));
 
                       pDescr = ep0_send_buf;
-                      len = sizeof( TAB_USB_CDC_DEV_DES );
+                      len = sizeof (TAB_USB_CDC_DEV_DES);
                       break;
                     }
                     case 2:  // Configure descriptors
                     {
-                      memcpy(ep0_send_buf,
+                      memcpy (ep0_send_buf,
                              &TAB_USB_CDC_CFG_DES[0],
-                             sizeof( TAB_USB_CDC_CFG_DES ));
+                             sizeof (TAB_USB_CDC_CFG_DES));
                       pDescr = ep0_send_buf;
-                      len = sizeof( TAB_USB_CDC_CFG_DES );
+                      len = sizeof (TAB_USB_CDC_CFG_DES);
                       break;
                     }
                     case 3:  // String descriptors
                     {
-                      dg_log("str %d\r\n",UsbSetupBuf->wValueL);
-                      dg_log("str %d\r\n",UsbSetupBuf->wValueL);
-                      switch(UsbSetupBuf->wValueL)
+                      dg_log ("str %d\r\n", UsbSetupBuf->wValueL);
+                      dg_log ("str %d\r\n", UsbSetupBuf->wValueL);
+                      switch (UsbSetupBuf->wValueL)
                       {
                         case 0:  // Language descriptors
                         {
-                          pDescr = (PUINT8)( &TAB_USB_LID_STR_DES[0] );
-                          len = sizeof( TAB_USB_LID_STR_DES );
+                          pDescr = (PUINT8) (&TAB_USB_LID_STR_DES[0]);
+                          len = sizeof (TAB_USB_LID_STR_DES);
 
                           break;
                         }
@@ -1011,17 +1012,17 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                           UINT8 tmp;
 
                           /* Take the length */
-                          if(UsbSetupBuf->wValueL == 1)
-                            manu_str = (UINT8 *)USB_DEV_PARA_CDC_MANUFACTURE_STR;
-                          else if(UsbSetupBuf->wValueL == 2)
-                            manu_str = (UINT8 *)USB_DEV_PARA_CDC_PRODUCT_STR;
-                          else if(UsbSetupBuf->wValueL == 3)
-                            manu_str = (UINT8 *)USB_DEV_PARA_CDC_SERIAL_STR;
-                          ep0_str_len = (UINT8)strlen((char *)manu_str);
+                          if (UsbSetupBuf->wValueL == 1)
+                            manu_str = (UINT8 *) USB_DEV_PARA_CDC_MANUFACTURE_STR;
+                          else if (UsbSetupBuf->wValueL == 2)
+                            manu_str = (UINT8 *) USB_DEV_PARA_CDC_PRODUCT_STR;
+                          else if (UsbSetupBuf->wValueL == 3)
+                            manu_str = (UINT8 *) USB_DEV_PARA_CDC_SERIAL_STR;
+                          ep0_str_len = (UINT8) strlen ((char *) manu_str);
                           p_send = ep0_send_buf;
                           *p_send++ = ep0_str_len*2 + 2;
                           *p_send++ = 0x03;
-                          for(tmp = 0; tmp<ep0_str_len; tmp++)
+                          for (tmp = 0; tmp < ep0_str_len; tmp++)
                           {
                             *p_send++ = manu_str[tmp];
                             *p_send++ = 0x00;
@@ -1040,17 +1041,17 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                     }
                     case 6:  // Device Qualified Descriptor
                     {
-                      pDescr = (PUINT8)( &My_QueDescr[0] );
-                      len = sizeof( My_QueDescr );
+                      pDescr = (PUINT8) (&My_QueDescr[0]);
+                      len = sizeof (My_QueDescr);
                       break;
                     }
                     default:
                       len = 0xFF;                                  // Unsupported descriptor types
                       break;
                   }
-                  if ( SetupLen > len ) SetupLen = len;            // Limit the overall length
+                  if (SetupLen > len) SetupLen = len;            // Limit the overall length
                   len = (SetupLen >= THIS_ENDP0_SIZE) ? THIS_ENDP0_SIZE : SetupLen;  // The length of this transfer
-                  memcpy( Ep0Buffer, pDescr, len );                 /* Load the feed */
+                  memcpy (Ep0Buffer, pDescr, len);                 /* Load the feed */
                   SetupLen -= len;
                   pDescr += len;
 
@@ -1058,7 +1059,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                 }
                 case USB_SET_ADDRESS:  // Set the address
                 {
-                  dg_log("SET_ADDRESS:%d\r\n",UsbSetupBuf->wValueL);
+                  dg_log ("SET_ADDRESS:%d\r\n", UsbSetupBuf->wValueL);
                   devinf.gUsbFlag |= DEF_BIT_USB_ADDRESS;
                   devinf.UsbAddress = UsbSetupBuf->wValueL;    // Staging USB device addresses
 
@@ -1066,30 +1067,30 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                 }
                 case USB_GET_CONFIGURATION:
                 {
-                  dg_log("GET_CONFIGURATION\r\n");
+                  dg_log ("GET_CONFIGURATION\r\n");
                   Ep0Buffer[0] = devinf.UsbConfig;
-                  if ( SetupLen >= 1 ) len = 1;
+                  if (SetupLen >= 1) len = 1;
 
                   break;
                 }
                 case USB_SET_CONFIGURATION:
                 {
-                  dg_log("SET_CONFIGURATION\r\n");
+                  dg_log ("SET_CONFIGURATION\r\n");
                   devinf.gUsbFlag |= DEF_BIT_USB_SET_CFG;
                   devinf.UsbConfig = UsbSetupBuf->wValueL;
                   break;
                 }
                 case USB_CLEAR_FEATURE:
                 {
-                  dg_log("CLEAR_FEATURE\r\n");
+                  dg_log ("CLEAR_FEATURE\r\n");
                   len = 0;
                   /* Clear the device */
-                  if( ( UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK ) == USB_REQ_RECIP_DEVICE )
+                  if (( UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_DEVICE)
                   {
-                    R8_UEP1_CTRL = (R8_UEP1_CTRL & (~ ( RB_UEP_T_TOG | MASK_UEP_T_RES ))) | UEP_T_RES_NAK;
-                    R8_UEP2_CTRL = (R8_UEP2_CTRL & (~ ( RB_UEP_T_TOG | MASK_UEP_T_RES ))) | UEP_T_RES_NAK;
-                    R8_UEP3_CTRL = (R8_UEP3_CTRL & (~ ( RB_UEP_T_TOG | MASK_UEP_T_RES ))) | UEP_T_RES_NAK;
-                    R8_UEP4_CTRL = (R8_UEP4_CTRL & (~ ( RB_UEP_T_TOG | MASK_UEP_T_RES ))) | UEP_T_RES_NAK;
+                    R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
+                    R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
+                    R8_UEP3_CTRL = (R8_UEP3_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
+                    R8_UEP4_CTRL = (R8_UEP4_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
 
                     // The state variable is reset
                     Ep1DataINFlag = 1;
@@ -1105,18 +1106,18 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                     cdc_uart_sta_trans_step = 0;
                     ven_ep1_trans_step = 0;
                   }
-                  else if ( ( UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK ) == USB_REQ_RECIP_ENDP )  // endpoint
+                  else if (( UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_ENDP)  // endpoint
                   {
-                    switch( UsbSetupBuf->wIndexL )   // Judgment endpoint
+                    switch (UsbSetupBuf->wIndexL)   // Judgment endpoint
                     {
-                      case 0x84: R8_UEP4_CTRL = (R8_UEP4_CTRL & (~ ( RB_UEP_T_TOG | MASK_UEP_T_RES ))) | UEP_T_RES_NAK; break;
-                      case 0x04: R8_UEP4_CTRL = (R8_UEP4_CTRL & (~ ( RB_UEP_R_TOG | MASK_UEP_R_RES ))) | UEP_R_RES_ACK; break;
-                      case 0x83: R8_UEP3_CTRL = (R8_UEP3_CTRL & (~ ( RB_UEP_T_TOG | MASK_UEP_T_RES ))) | UEP_T_RES_NAK; break;
-                      case 0x03: R8_UEP3_CTRL = (R8_UEP3_CTRL & (~ ( RB_UEP_R_TOG | MASK_UEP_R_RES ))) | UEP_R_RES_ACK; break;
-                      case 0x82: R8_UEP2_CTRL = (R8_UEP2_CTRL & (~ ( RB_UEP_T_TOG | MASK_UEP_T_RES ))) | UEP_T_RES_NAK; break;
-                      case 0x02: R8_UEP2_CTRL = (R8_UEP2_CTRL & (~ ( RB_UEP_R_TOG | MASK_UEP_R_RES ))) | UEP_R_RES_ACK; break;
-                      case 0x81: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~ ( RB_UEP_T_TOG | MASK_UEP_T_RES ))) | UEP_T_RES_NAK; break;
-                      case 0x01: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~ ( RB_UEP_R_TOG | MASK_UEP_R_RES ))) | UEP_R_RES_ACK; break;
+                      case 0x84: R8_UEP4_CTRL = (R8_UEP4_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
+                      case 0x04: R8_UEP4_CTRL = (R8_UEP4_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
+                      case 0x83: R8_UEP3_CTRL = (R8_UEP3_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
+                      case 0x03: R8_UEP3_CTRL = (R8_UEP3_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
+                      case 0x82: R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
+                      case 0x02: R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
+                      case 0x81: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
+                      case 0x01: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
                       default: len = 0xFF;  break;
                     }
                   }
@@ -1126,17 +1127,17 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                 }
                 case USB_GET_INTERFACE:
                 {
-                  dg_log("GET_INTERFACE\r\n");
+                  dg_log ("GET_INTERFACE\r\n");
                   Ep0Buffer[0] = 0x00;
-                  if ( SetupLen >= 1 ) len = 1;
+                  if (SetupLen >= 1) len = 1;
                   break;
                 }
                 case USB_GET_STATUS:
                 {
-                  dg_log("GET_STATUS\r\n");
+                  dg_log ("GET_STATUS\r\n");
                   Ep0Buffer[0] = 0x00;
                   Ep0Buffer[1] = 0x00;
-                  if ( SetupLen >= 2 ) len = 2;
+                  if (SetupLen >= 2) len = 2;
                   else len = SetupLen;
                   break;
                 }
@@ -1146,28 +1147,28 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
               }
             }
             /* Class requests */
-            else if( ( UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK ) == USB_REQ_TYP_CLASS )
+            else if (( UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_CLASS)
             {
               /* The host is downloaded */
-              if(data_dir == USB_REQ_TYP_OUT)
+              if (data_dir == USB_REQ_TYP_OUT)
               {
-                switch( SetupReqCode )  // Request code
+                switch (SetupReqCode)  // Request code
                 {
                   case DEF_SET_LINE_CODING: /* SET_LINE_CODING */
                   {
                     UINT8 i;
-                    dg_log("SET_LINE_CODING\r\n");
-                    for(i=0; i<8; i++)
+                    dg_log ("SET_LINE_CODING\r\n");
+                    for (i = 0; i < 8; i++)
                     {
-                      dg_log("%02x ",Ep0Buffer[i]);
+                      dg_log ("%02x ", Ep0Buffer[i]);
                     }
-                    dg_log("\r\n");
-                    if( Ep0Buffer[ 4 ] == 0x00 )
+                    dg_log ("\r\n");
+                    if (Ep0Buffer[ 4 ] == 0x00)
                     {
                       CDCSetSerIdx = 0;
                       len = 0x00;
                     }
-                    else if( Ep0Buffer[ 4 ] == 0x02 )
+                    else if (Ep0Buffer[ 4 ] == 0x02)
                     {
                       CDCSetSerIdx = 1;
                       len = 0x00;
@@ -1180,7 +1181,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                     UINT8  carrier_sta;
                     UINT8  present_sta;
                     /* Line status */
-                    dg_log("ctl %02x %02x\r\n",Ep0Buffer[2],Ep0Buffer[3]);
+                    dg_log ("ctl %02x %02x\r\n", Ep0Buffer[2], Ep0Buffer[3]);
                     carrier_sta = Ep0Buffer[2] & (1<<1);   // RTS status
                     present_sta = Ep0Buffer[2] & (1<<0);   // DTR status
                     len = 0;
@@ -1188,7 +1189,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                   }
                   default:
                   {
-                    dg_log("CDC ReqCode%x\r\n",SetupReqCode);
+                    dg_log ("CDC ReqCode%x\r\n", SetupReqCode);
                     len = 0xFF;                                       // The operation failed
                     break;
                   }
@@ -1197,22 +1198,22 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
               /* Device upload */
               else
               {
-                switch( SetupReqCode )  // Request code
+                switch (SetupReqCode)  // Request code
                 {
                   case DEF_GET_LINE_CODING: /* GET_LINE_CODING */
                   {
-                    dg_log("GET_LINE_CODING:%d\r\n",Ep0Buffer[ 4 ]);
+                    dg_log ("GET_LINE_CODING:%d\r\n", Ep0Buffer[ 4 ]);
                     pDescr = Ep0Buffer;
-                    len = sizeof( LINE_CODE );
-                    ( ( PLINE_CODE )Ep0Buffer )->BaudRate   = Uart0Para.BaudRate;
-                    ( ( PLINE_CODE )Ep0Buffer )->StopBits   = Uart0Para.StopBits;
-                    ( ( PLINE_CODE )Ep0Buffer )->ParityType = Uart0Para.ParityType;
-                    ( ( PLINE_CODE )Ep0Buffer )->DataBits   = Uart0Para.DataBits;
+                    len = sizeof (LINE_CODE);
+                    ((PLINE_CODE) Ep0Buffer)->BaudRate   = Uart0Para.BaudRate;
+                    ((PLINE_CODE) Ep0Buffer)->StopBits   = Uart0Para.StopBits;
+                    ((PLINE_CODE) Ep0Buffer)->ParityType = Uart0Para.ParityType;
+                    ((PLINE_CODE) Ep0Buffer)->DataBits   = Uart0Para.DataBits;
                     break;
                   }
                   case DEF_SERIAL_STATE:
                   {
-                    dg_log("GET_SERIAL_STATE:%d\r\n",Ep0Buffer[ 4 ]);
+                    dg_log ("GET_SERIAL_STATE:%d\r\n", Ep0Buffer[ 4 ]);
                     // SetupLen determines the overall length
                     len = 2;
                     CDCSetSerIdx = 0;
@@ -1222,7 +1223,7 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                   }
                   default:
                   {
-                    dg_log("CDC ReqCode%x\r\n",SetupReqCode);
+                    dg_log ("CDC ReqCode%x\r\n", SetupReqCode);
                     len = 0xFF;                                       // The operation failed
                     break;
                   }
@@ -1236,87 +1237,87 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
           {
             len = 0xFF; // The length of the SETUP package is incorrect
           }
-          if ( len == 0xFF )  // The operation failed
+          if (len == 0xFF)  // The operation failed
           {
             SetupReqCode = 0xFF;
-            PFIC_DisableIRQ(USB_IRQn);
+            PFIC_DisableIRQ (USB_IRQn);
             R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_STALL | UEP_T_RES_STALL;  // STALL
-            PFIC_EnableIRQ(USB_IRQn);
+            PFIC_EnableIRQ (USB_IRQn);
           }
-          else if ( len <= THIS_ENDP0_SIZE )  // A packet of 0 length is returned in the upload or status phase
+          else if (len <= THIS_ENDP0_SIZE)  // A packet of 0 length is returned in the upload or status phase
           {
-            if( SetupReqCode ==  USB_SET_ADDRESS)  // Set the address 0x05
+            if (SetupReqCode ==  USB_SET_ADDRESS)  // Set the address 0x05
             {
-//              dg_log("add in:%d\r\n",len);
-              PFIC_DisableIRQ(USB_IRQn);
+//              dg_log ("add in:%d\r\n", len);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_T_LEN = len;
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
             }
-            else if( SetupReqCode ==  USB_SET_CONFIGURATION)  // Set the configuration value 0x09
+            else if (SetupReqCode ==  USB_SET_CONFIGURATION)  // Set the configuration value 0x09
             {
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_T_LEN = len;
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
             }
-            else if( SetupReqCode ==  USB_GET_DESCRIPTOR)  // Get the descriptor 0x06
+            else if (SetupReqCode ==  USB_GET_DESCRIPTOR)  // Get the descriptor 0x06
             {
               R8_UEP0_T_LEN = len;
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
             }
-            else if( SetupReqCode ==  DEF_VEN_UART_INIT )  // 0XA1 Initialize the serial port
+            else if (SetupReqCode ==  DEF_VEN_UART_INIT)  // 0XA1 Initialize the serial port
             {
               R8_UEP0_T_LEN = len;
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
             }
-            else if( SetupReqCode ==  DEF_VEN_DEBUG_WRITE )  // 0X9A
+            else if (SetupReqCode ==  DEF_VEN_DEBUG_WRITE)  // 0X9A
             {
               R8_UEP0_T_LEN = len;
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
             }
-            else if( SetupReqCode ==  DEF_VEN_UART_M_OUT )  // 0XA4
+            else if (SetupReqCode ==  DEF_VEN_UART_M_OUT)  // 0XA4
             {
               R8_UEP0_T_LEN = len;
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
             }
-            else if( SetupReqCode ==  DEF_SET_CONTROL_LINE_STATE )  // 0x22
+            else if (SetupReqCode ==  DEF_SET_CONTROL_LINE_STATE)  // 0x22
             {
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_T_LEN = len;
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
             }
-            else if( SetupReqCode ==  USB_CLEAR_FEATURE )  // 0x01
+            else if (SetupReqCode ==  USB_CLEAR_FEATURE)  // 0x01
             {
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_T_LEN = len;
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
             }
             else
             {
-              if(data_dir == USB_REQ_TYP_IN)   // Upload is currently required
+              if (data_dir == USB_REQ_TYP_IN)   // Upload is currently required
               {
-                PFIC_DisableIRQ(USB_IRQn);
+                PFIC_DisableIRQ (USB_IRQn);
                 R8_UEP0_T_LEN = len;
                 R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-                PFIC_EnableIRQ(USB_IRQn);
+                PFIC_EnableIRQ (USB_IRQn);
               }
               else                            // Downloading is currently required
               {
-                PFIC_DisableIRQ(USB_IRQn);
+                PFIC_DisableIRQ (USB_IRQn);
                 R8_UEP0_T_LEN = len;
                 R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_NAK;  // The default packet is DATA1
-                PFIC_EnableIRQ(USB_IRQn);
+                PFIC_EnableIRQ (USB_IRQn);
               }
             }
           }
@@ -1324,48 +1325,48 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
           {
             // Although it has not yet reached the state stage, it is necessary to preset and upload 0-length packets in advance to prevent the host from entering the state phase in advance
             R8_UEP0_T_LEN = 0;
-            PFIC_DisableIRQ(USB_IRQn);
+            PFIC_DisableIRQ (USB_IRQn);
             R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;  // The default packet is DATA1
-            PFIC_EnableIRQ(USB_IRQn);
+            PFIC_EnableIRQ (USB_IRQn);
           }
           break;
         }
         case UIS_TOKEN_IN | 0:      // endpoint 0# IN  UIS_TOKEN_IN
         {
-          switch( SetupReqCode )
+          switch (SetupReqCode)
           {
             /* Simple handling of SETUP commands */
             case USB_GET_DESCRIPTOR:  // 0x06 Get a descriptor
             {
               len = (SetupLen >= THIS_ENDP0_SIZE) ? THIS_ENDP0_SIZE : SetupLen;  // The length of this transfer
-              memcpy( Ep0Buffer, pDescr, len );                    /* Load the feed */
+              memcpy (Ep0Buffer, pDescr, len);                    /* Load the feed */
               SetupLen -= len;
               pDescr += len;
 
-              if(len)
+              if (len)
               {
                 R8_UEP0_T_LEN = len;
-                PFIC_DisableIRQ(USB_IRQn);
+                PFIC_DisableIRQ (USB_IRQn);
                 R8_UEP0_CTRL ^=  RB_UEP_T_TOG;
-                USBDevEPnINSetStatus(ENDP0, ENDP_TYPE_IN, IN_ACK);
-                PFIC_EnableIRQ(USB_IRQn);
+                USBDevEPnINSetStatus (ENDP0, ENDP_TYPE_IN, IN_ACK);
+                PFIC_EnableIRQ (USB_IRQn);
               }
               else
               {
                 R8_UEP0_T_LEN = len;
-                PFIC_DisableIRQ(USB_IRQn);
+                PFIC_DisableIRQ (USB_IRQn);
                 R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_ACK | UEP_T_RES_NAK;
-                PFIC_EnableIRQ(USB_IRQn);
+                PFIC_EnableIRQ (USB_IRQn);
               }
               break;
             }
             case USB_SET_ADDRESS:   // 0x05
             {
               R8_USB_DEV_AD = (R8_USB_DEV_AD & RB_UDA_GP_BIT) | (devinf.UsbAddress);
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ(USB_IRQn);
-//              dg_log("add in deal\r\n");
+              PFIC_EnableIRQ (USB_IRQn);
+//              dg_log ("add in deal\r\n");
 
               break;
             }
@@ -1373,33 +1374,33 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
             case DEF_VEN_DEBUG_READ:     // 0X95
             case DEF_VEN_GET_VER:        // 0X5F
             {
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_ACK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
 
               break;
             }
             case DEF_GET_LINE_CODING:  // 0x21
             {
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_ACK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
 
               break;
             }
             case DEF_SET_LINE_CODING:   // 0x20
             {
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
               break;
             }
             default:
             {
               R8_UEP0_T_LEN = 0; // The state phase completes an interrupt or forces the upload of 0-length packets to end the control transmission
-              PFIC_DisableIRQ(USB_IRQn);
+              PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ(USB_IRQn);
+              PFIC_EnableIRQ (USB_IRQn);
 
               break;
             }
@@ -1409,9 +1410,9 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
         case UIS_TOKEN_OUT | 0:  // endpoint 0# OUT
         {
           len = usb_irq_len[i];
-          if(len)
+          if (len)
           {
-            switch(SetupReqCode)
+            switch (SetupReqCode)
             {
               /* Set the serial port */
               case DEF_SET_LINE_CODING:
@@ -1422,16 +1423,16 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                 UINT8  ver_bit;
                 UINT8  set_stop_bit;
 
-                memcpy(&set_bps,Ep0Buffer,4);
+                memcpy (&set_bps, Ep0Buffer, 4);
                 stop_bit = Ep0Buffer[4];
                 ver_bit = Ep0Buffer[5];
                 data_bit = Ep0Buffer[6];
 
-                dg_log("LINE_CODING %d %d %d %d %d\r\n",CDCSetSerIdx
-                                     ,(int)set_bps
-                                     ,data_bit
-                                     ,stop_bit
-                                     ,ver_bit);
+                dg_log ("LINE_CODING %d %d %d %d %d\r\n", CDCSetSerIdx
+                                     , (int) set_bps
+                                     , data_bit
+                                     , stop_bit
+                                     , ver_bit);
 
                   Uart0Para.BaudRate = set_bps;
                   Uart0Para.StopBits = stop_bit;
@@ -1439,23 +1440,23 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
                   Uart0Para.DataBits = data_bit;
                   CDCSer0ParaChange = 1;
 
-                PFIC_DisableIRQ(USB_IRQn);
+                PFIC_DisableIRQ (USB_IRQn);
                 R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK|UEP_T_RES_ACK;
-                PFIC_EnableIRQ(USB_IRQn);
+                PFIC_EnableIRQ (USB_IRQn);
                 break;
               }
               default:
-                PFIC_DisableIRQ(USB_IRQn);
+                PFIC_DisableIRQ (USB_IRQn);
                 R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
-                PFIC_EnableIRQ(USB_IRQn);
+                PFIC_EnableIRQ (USB_IRQn);
                 break;
             }
           }
           else
           {
-            PFIC_DisableIRQ(USB_IRQn);
+            PFIC_DisableIRQ (USB_IRQn);
             R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK|UEP_T_RES_NAK;
-            PFIC_EnableIRQ(USB_IRQn);
+            PFIC_EnableIRQ (USB_IRQn);
           }
           break;
         }
@@ -1464,13 +1465,13 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
           break;
       }
 
-      PFIC_DisableIRQ(USB_IRQn);
+      PFIC_DisableIRQ (USB_IRQn);
       usb_irq_flag[i] = 0;
-      PFIC_EnableIRQ(USB_IRQn);
+      PFIC_EnableIRQ (USB_IRQn);
     }
   }
 
-  if ( R8_USB_INT_FG & RB_UIF_BUS_RST )  // USB bus reset
+  if (R8_USB_INT_FG & RB_UIF_BUS_RST)  // USB bus reset
   {
       R8_UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
       R8_UEP1_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK;
@@ -1486,9 +1487,9 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
 
     R8_USB_INT_FG = RB_UIF_BUS_RST;             // Clear the break sign
   }
-  else if (  R8_USB_INT_FG & RB_UIF_SUSPEND )  // USB bus hang/wake complete
+  else if (R8_USB_INT_FG & RB_UIF_SUSPEND)  // USB bus hang/wake complete
   {
-    if ( R8_USB_MIS_ST & RB_UMS_SUSPEND )    // Suspend
+    if (R8_USB_MIS_ST & RB_UMS_SUSPEND)    // Suspend
     {
       CDCSer0ParaChange = 1;
 
@@ -1532,13 +1533,13 @@ void USB_IRQProcessHandler( void )   /* USB interrupt service program */
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void USBDevEPnINSetStatus(UINT8 ep_num, UINT8 type, UINT8 sta)
+void USBDevEPnINSetStatus (UINT8 ep_num, UINT8 type, UINT8 sta)
 {
   UINT8 *p_UEPn_CTRL;
 
-  p_UEPn_CTRL = (UINT8 *)(USB_BASE_ADDR + 0x22 + ep_num * 4);
-  if(type == ENDP_TYPE_IN) *((PUINT8V)p_UEPn_CTRL) = (*((PUINT8V)p_UEPn_CTRL) & (~(0x03))) | sta;
-  else *((PUINT8V)p_UEPn_CTRL) = (*((PUINT8V)p_UEPn_CTRL) & (~(0x03<<2))) | (sta<<2);
+  p_UEPn_CTRL = (UINT8 *) (USB_BASE_ADDR + 0x22 + ep_num * 4);
+  if (type == ENDP_TYPE_IN) *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03))) | sta;
+  else *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03<<2))) | (sta<<2);
 }
 
 /*******************************************************************************
@@ -1548,7 +1549,7 @@ void USBDevEPnINSetStatus(UINT8 ep_num, UINT8 type, UINT8 sta)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void USBParaInit(void)
+void USBParaInit (void)
 {
   Ep1DataINFlag = 1;
   Ep1DataOUTFlag = 0;
@@ -1568,10 +1569,10 @@ void USBParaInit(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void InitCDCDevice(void)
+void InitCDCDevice (void)
 {
   /* Initialize the cache */
-  USBParaInit();
+  USBParaInit ();
 
   R8_USB_CTRL = 0x00;                                                 // Set the mode first
 
@@ -1587,11 +1588,11 @@ void InitCDCDevice(void)
   /* Single 64-Byte Receive Buffer (OUT), Single 64-Byte Send Buffer (IN) */
   R8_UEP2_3_MOD = RB_UEP2_RX_EN | RB_UEP2_TX_EN | RB_UEP3_TX_EN;
 
-  R16_UEP0_DMA = (UINT16)(UINT32)&Ep0Buffer[0];
-  R16_UEP1_DMA = (UINT16)(UINT32)&Ep1Buffer[0];
-  R16_UEP2_DMA = (UINT16)(UINT32)&Ep2Buffer[0];
-  R16_UEP3_DMA = (UINT16)(UINT32)&Ep3Buffer[0];
-  // R16_UEP4_DMA = (UINT16)(UINT32)&Ep2Buffer[0];
+  R16_UEP0_DMA = (UINT16) (UINT32) &Ep0Buffer[0];
+  R16_UEP1_DMA = (UINT16) (UINT32) &Ep1Buffer[0];
+  R16_UEP2_DMA = (UINT16) (UINT32) &Ep2Buffer[0];
+  R16_UEP3_DMA = (UINT16) (UINT32) &Ep3Buffer[0];
+  // R16_UEP4_DMA = (UINT16) (UINT32) &Ep2Buffer[0];
 
   /* ENDPOINT 0 STATE: OUT---ACK IN--NAK */
   R8_UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
@@ -1624,7 +1625,7 @@ void InitCDCDevice(void)
   // Turn on interrupt, pend, transfer complete, bus reset
   // R8_USB_INT_EN = RB_UIE_SUSPEND | RB_UIE_TRANSFER | RB_UIE_BUS_RST;
   R8_USB_INT_EN = RB_UIE_TRANSFER ;
-  PFIC_EnableIRQ(USB_IRQn);
+  PFIC_EnableIRQ (USB_IRQn);
 
   // Enable the USB port
   R8_UDEV_CTRL |= RB_UD_PORT_EN;
@@ -1641,7 +1642,7 @@ void InitCDCDevice(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void InitUSBDefPara(void)
+void InitUSBDefPara (void)
 {
   UINT8 i;
 
@@ -1655,7 +1656,7 @@ void InitUSBDefPara(void)
   CDCSetSerIdx = 0;
   CDCSer0ParaChange = 0;
 
-  for(i=0; i<CH341_REG_NUM; i++)
+  for (i = 0; i < CH341_REG_NUM; i++)
   {
     CH341_Reg_Add[i] = 0xff;
     CH341_Reg_val[i] = 0x00;
@@ -1670,7 +1671,7 @@ void InitUSBDefPara(void)
   UART0_DTR_Val = 0; // Output: The data terminal is ready
   UART0_OUT_Val = 0; // Custom modem signal (CH340 manual)
 
-  for(i=0; i<USB_IRQ_FLAG_NUM; i++)
+  for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
   {
     usb_irq_flag[i] = 0;
   }
@@ -1683,9 +1684,9 @@ void InitUSBDefPara(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void InitUSBDevice(void)
+void InitUSBDevice (void)
 {
-  InitCDCDevice();
+  InitCDCDevice ();
 }
 
 /* Communications */
@@ -1697,17 +1698,17 @@ void InitUSBDevice(void)
 * Output         : None
 * Return: The status of the send
 *******************************************************************************/
-UINT8 SendUSBData(UINT8 *p_send_dat,UINT16 send_len)
+UINT8 SendUSBData (UINT8 *p_send_dat, UINT16 send_len)
 {
   UINT8 sta = 0;
 
-  memcpy(&Ep1Buffer[MAX_PACKET_SIZE],p_send_dat,send_len);
+  memcpy (&Ep1Buffer[MAX_PACKET_SIZE], p_send_dat, send_len);
 
   Ep1DataINFlag = 0;
-  R8_UEP1_T_LEN = (UINT8)send_len;
-  PFIC_DisableIRQ(USB_IRQn);
+  R8_UEP1_T_LEN = (UINT8) send_len;
+  PFIC_DisableIRQ (USB_IRQn);
   R8_UEP1_CTRL = R8_UEP1_CTRL & 0xfc; // IN_ACK
-  PFIC_EnableIRQ(USB_IRQn);
+  PFIC_EnableIRQ (USB_IRQn);
 
   return sta;
 }
