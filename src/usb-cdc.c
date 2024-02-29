@@ -13,7 +13,7 @@
 #define MAX_PACKET_SIZE         64
 
 /* Device Descriptor */
-const UINT8 TAB_USB_CDC_DEV_DES[18] =
+const uint8_t TAB_USB_CDC_DEV_DES[18] =
 {
   0x12,        // bLength
   0x01,        // bDescriptorType
@@ -33,7 +33,7 @@ const UINT8 TAB_USB_CDC_DEV_DES[18] =
 
 
 /* Configuration Descriptor */
-const UINT8 TAB_USB_CDC_CFG_DES[] =
+const uint8_t TAB_USB_CDC_CFG_DES[] =
 {
   0x09, 0x02, 0x43, 0x00, 0x02, 0x01, 0x00, 0x80, 0x30,
 
@@ -55,9 +55,9 @@ const UINT8 TAB_USB_CDC_CFG_DES[] =
 };
 
 /* Device Qualified Descriptor */
-const UINT8 My_QueDescr[ ] = { 0x0A, 0x06, 0x00, 0x02, 0xFF, 0x00, 0xFF, 0x40, 0x01, 0x00 };
+const uint8_t My_QueDescr[ ] = { 0x0A, 0x06, 0x00, 0x02, 0xFF, 0x00, 0xFF, 0x40, 0x01, 0x00 };
 
-UINT8 TAB_CDC_LINE_CODING[ ]  =
+uint8_t TAB_CDC_LINE_CODING[ ]  =
 {
   0x85,   /* baud rate*/
   0x20,
@@ -71,21 +71,21 @@ UINT8 TAB_CDC_LINE_CODING[ ]  =
 #define DEF_IC_PRG_VER     0x31
 
 // Language descriptors
-const UINT8 TAB_USB_LID_STR_DES[ ] = { 0x04, 0x03, 0x09, 0x04 };
+const uint8_t TAB_USB_LID_STR_DES[ ] = { 0x04, 0x03, 0x09, 0x04 };
 
-const UINT8 USB_DEV_PARA_CDC_SERIAL_STR[]      = "WCH121212TS1";
-const UINT8 USB_DEV_PARA_CDC_PRODUCT_STR[]     = "USB2.0 To Serial Port";
-const UINT8 USB_DEV_PARA_CDC_MANUFACTURE_STR[] = "wch.cn";
+const uint8_t USB_DEV_PARA_CDC_SERIAL_STR[]      = "WCH121212TS1";
+const uint8_t USB_DEV_PARA_CDC_PRODUCT_STR[]     = "USB2.0 To Serial Port";
+const uint8_t USB_DEV_PARA_CDC_MANUFACTURE_STR[] = "wch.cn";
 
 
 typedef struct DevInfo
 {
-  UINT8 UsbConfig;      // USB configuration flags
-  UINT8 UsbAddress;     // USB device address
-  UINT8 gSetupReq;      // USB control transfer command code
-  UINT8 gSetupLen;      // USB controls the transmission length
-  UINT8 gUsbInterCfg;   // USB device interface configuration
-  UINT8 gUsbFlag;       // Various operating flags for USB devices,
+  uint8_t UsbConfig;      // USB configuration flags
+  uint8_t UsbAddress;     // USB device address
+  uint8_t gSetupReq;      // USB control transfer command code
+  uint8_t gSetupLen;      // USB controls the transmission length
+  uint8_t gUsbInterCfg;   // USB device interface configuration
+  uint8_t gUsbFlag;       // Various operating flags for USB devices,
                         //     bit 0 = bus reset,
                         //     bit 1 = get device descriptor,
                         //     bit 2 = set address,
@@ -95,110 +95,110 @@ typedef struct DevInfo
 
 /* Device information */
 DevInfo_Parm  devinf;
-UINT8 SetupReqCode, SetupLen;
+uint8_t SetupReqCode, SetupLen;
 
 /* Buffers for endpoint hardware and software operations */
-__aligned (4) UINT8  Ep0Buffer[MAX_PACKET_SIZE];     // Endpoint 0 Transmit and receive common Endpoint 4 OUT & IN
+__aligned (4) uint8_t  Ep0Buffer[MAX_PACKET_SIZE];     // Endpoint 0 Transmit and receive common Endpoint 4 OUT & IN
 
 // The upload address of endpoint 4
-__aligned (4) UINT8  Ep1Buffer[MAX_PACKET_SIZE];     // IN
-__aligned (4) UINT8  Ep2Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
-__aligned (4) UINT8  Ep3Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
+__aligned (4) uint8_t  Ep1Buffer[MAX_PACKET_SIZE];     // IN
+__aligned (4) uint8_t  Ep2Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
+__aligned (4) uint8_t  Ep3Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
 
 // Line Code structure
 typedef struct __PACKED _LINE_CODE
 {
-  UINT32  BaudRate;   /* baud rate */
-  UINT8 StopBits;     /* Stop bit counting, 0:1 stop bit, 1:1.5 stop bit, 2:2 stop bit */
-  UINT8 ParityType;   /* Check digit, 0: None, 1: Odd, 2: Even, 3: Mark, 4: Space */
-  UINT8 DataBits;     /* Data bit count: 5, 6, 7, 8, 16 */
+  uint32_t  BaudRate;   /* baud rate */
+  uint8_t StopBits;     /* Stop bit counting, 0:1 stop bit, 1:1.5 stop bit, 2:2 stop bit */
+  uint8_t ParityType;   /* Check digit, 0: None, 1: Odd, 2: Even, 3: Mark, 4: Space */
+  uint8_t DataBits;     /* Data bit count: 5, 6, 7, 8, 16 */
 } LINE_CODE, *PLINE_CODE;
 
 /* Data related to the two serial ports */
 LINE_CODE Uart0Para;
 
 #define CH341_REG_NUM     10
-UINT8 CH341_Reg_Add[CH341_REG_NUM];
-UINT8 CH341_Reg_val[CH341_REG_NUM];
+uint8_t CH341_Reg_Add[CH341_REG_NUM];
+uint8_t CH341_Reg_val[CH341_REG_NUM];
 
 
 /* The serial port parameters are changed in vendor mode */
-UINT8 VENSer0ParaChange = 0;
+uint8_t VENSer0ParaChange = 0;
 
 /* In vendor mode, the serial port sends a data flag */
-UINT8 VENSer0SendFlag = 0;
+uint8_t VENSer0SendFlag = 0;
 
 /* Modem signal detection in vendor mode */
-UINT8 UART0_RTS_Val = 0; // Output indicates that the DTE requests the DCE to send data
-UINT8 UART0_DTR_Val = 0; // Output: The data terminal is ready
-UINT8 UART0_OUT_Val = 0; // Custom modem signal (CH340 manual)
+uint8_t UART0_RTS_Val = 0; // Output indicates that the DTE requests the DCE to send data
+uint8_t UART0_DTR_Val = 0; // Output: The data terminal is ready
+uint8_t UART0_OUT_Val = 0; // Custom modem signal (CH340 manual)
 
-UINT8 UART0_DCD_Val    = 0;
-UINT8 UART0_DCD_Change = 0;
+uint8_t UART0_DCD_Val    = 0;
+uint8_t UART0_DCD_Change = 0;
 
-UINT8 UART0_RI_Val    = 0;
-UINT8 UART0_RI_Change = 0;
+uint8_t UART0_RI_Val    = 0;
+uint8_t UART0_RI_Change = 0;
 
-UINT8 UART0_DSR_Val    = 0;
-UINT8 UART0_DSR_Change = 0;
+uint8_t UART0_DSR_Val    = 0;
+uint8_t UART0_DSR_Change = 0;
 
-UINT8 UART0_CTS_Val    = 0;
-UINT8 UART0_CTS_Change = 0;
+uint8_t UART0_CTS_Val    = 0;
+uint8_t UART0_CTS_Change = 0;
 
 /* The serial port set by CDC */
-UINT8 CDCSetSerIdx      = 0;
-UINT8 CDCSer0ParaChange = 0;
+uint8_t CDCSetSerIdx      = 0;
+uint8_t CDCSer0ParaChange = 0;
 
 typedef struct _USB_SETUP_REQ_ {
-    UINT8 bRequestType;
-    UINT8 bRequest;
-    UINT8 wValueL;
-    UINT8 wValueH;
-    UINT8 wIndexL;
-    UINT8 wIndexH;
-    UINT8 wLengthL;
-    UINT8 wLengthH;
+    uint8_t bRequestType;
+    uint8_t bRequest;
+    uint8_t wValueL;
+    uint8_t wValueH;
+    uint8_t wIndexL;
+    uint8_t wIndexH;
+    uint8_t wLengthL;
+    uint8_t wLengthH;
 } USB_SETUP_REQ_t;
 
 #define UsbSetupBuf     ((USB_SETUP_REQ_t *) Ep0Buffer) // USB_SETUP_REQ_t USB_SETUP_REQ_t
 
 /* USB cache definition, all endpoints are defined */
 /* Endpoint 1 -- IN status */
-UINT8 Ep1DataINFlag = 0;
+uint8_t Ep1DataINFlag = 0;
 
 /* Endpoint 1 transmits data down */
-UINT8 Ep1DataOUTFlag = 0;
-UINT8 Ep1DataOUTLen  = 0;
-__aligned (4) UINT8 Ep1OUTDataBuf[MAX_PACKET_SIZE];
+uint8_t Ep1DataOUTFlag = 0;
+uint8_t Ep1DataOUTLen  = 0;
+__aligned (4) uint8_t Ep1OUTDataBuf[MAX_PACKET_SIZE];
 
 /* Endpoint 2 -- IN Status */
-UINT8 Ep2DataINFlag = 0;
+uint8_t Ep2DataINFlag = 0;
 
 /* Endpoint 2 uploads data down */
-UINT8 Ep2DataOUTFlag = 0;
-UINT8 Ep2DataOUTLen  = 0;
-__aligned (4) UINT8 Ep2OUTDataBuf[MAX_PACKET_SIZE];
+uint8_t Ep2DataOUTFlag = 0;
+uint8_t Ep2DataOUTLen  = 0;
+__aligned (4) uint8_t Ep2OUTDataBuf[MAX_PACKET_SIZE];
 
 /* Save the status of USB interrupts - > change the operation mode to several groups */
 #define USB_IRQ_FLAG_NUM     4
 
-UINT8 usb_irq_w_idx = 0;
-UINT8 usb_irq_r_idx = 0;
+uint8_t usb_irq_w_idx = 0;
+uint8_t usb_irq_r_idx = 0;
 
-volatile UINT8 usb_irq_len[USB_IRQ_FLAG_NUM];
-volatile UINT8 usb_irq_pid[USB_IRQ_FLAG_NUM];
-volatile UINT8 usb_irq_flag[USB_IRQ_FLAG_NUM];
+volatile uint8_t usb_irq_len[USB_IRQ_FLAG_NUM];
+volatile uint8_t usb_irq_pid[USB_IRQ_FLAG_NUM];
+volatile uint8_t usb_irq_flag[USB_IRQ_FLAG_NUM];
 
-UINT8 cdc_uart_sta_trans_step = 0;
-UINT8 ven_ep1_trans_step      = 0;
+uint8_t cdc_uart_sta_trans_step = 0;
+uint8_t ven_ep1_trans_step      = 0;
 
 /* Endpoint 0 enumerates upload frame processing */
-UINT8 ep0_send_buf[256];
+uint8_t ep0_send_buf[256];
 
 /**********************************************************/
-UINT8 DevConfig;
-UINT16 SetupReqLen;
-const UINT8 *pDescr;
+uint8_t DevConfig;
+uint16_t SetupReqLen;
+const uint8_t *pDescr;
 
 
 /* Character Size */
@@ -220,7 +220,7 @@ const UINT8 *pDescr;
 
 
 /* Endpoint state setting function */
-void USBDevEPnINSetStatus (UINT8 ep_num, UINT8 type, UINT8 sta);
+void USBDevEPnINSetStatus (uint8_t ep_num, uint8_t type, uint8_t sta);
 
 /*******************************************************************************
 * Function Name  : CH341RegWrite
@@ -230,11 +230,11 @@ void USBDevEPnINSetStatus (UINT8 ep_num, UINT8 type, UINT8 sta);
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void CH341RegWrite (UINT8 reg_add, UINT8 reg_val)
+void CH341RegWrite (uint8_t reg_add, uint8_t reg_val)
 {
-  UINT8 find_idx;
-  UINT8 find_flag;
-  UINT8 i;
+  uint8_t find_idx;
+  uint8_t find_flag;
+  uint8_t i;
 
   find_flag = 0;
   find_idx = 0;
@@ -268,11 +268,11 @@ void CH341RegWrite (UINT8 reg_add, UINT8 reg_val)
     case 0x07:break; // IO
     case 0x18: // SFR_UART_CTRL --> parameter register of the serial port
     {
-      UINT8 reg_uart_ctrl;
-      UINT8 data_bit_val;
-      UINT8 stop_bit_val;
-      UINT8 parity_val;
-      UINT8 break_en;
+      uint8_t reg_uart_ctrl;
+      uint8_t data_bit_val;
+      uint8_t stop_bit_val;
+      uint8_t parity_val;
+      uint8_t break_en;
 
       reg_uart_ctrl = reg_val;
       /* Break bit */
@@ -325,10 +325,10 @@ void CH341RegWrite (UINT8 reg_add, UINT8 reg_val)
 * Output         : None
 * Return         : Register exists
 *******************************************************************************/
-UINT8 CH341RegRead (UINT8 reg_add, UINT8 *reg_val)
+uint8_t CH341RegRead (uint8_t reg_add, uint8_t *reg_val)
 {
-  UINT8 find_flag;
-  UINT8 i;
+  uint8_t find_flag;
+  uint8_t i;
 
   find_flag = 0;
   *reg_val = 0;
@@ -352,20 +352,20 @@ UINT8 CH341RegRead (UINT8 reg_add, UINT8 *reg_val)
   {
     case 0x06:
     {
-      UINT8  reg_pb_val = 0;
+      uint8_t  reg_pb_val = 0;
       *reg_val = reg_pb_val;
       break;
     }
     case 0x07:
     {
-      UINT8  reg_pc_val = 0;
+      uint8_t  reg_pc_val = 0;
       *reg_val = reg_pc_val;
       break;
     }
     case 0x18:   // SFR_UART_CTRL --> parameter register of the serial port
     {
-      UINT8  reg_uart_ctrl_val;
-      UINT8  ram_uart_ctrl_val;
+      uint8_t  reg_uart_ctrl_val;
+      uint8_t  ram_uart_ctrl_val;
 
       reg_uart_ctrl_val = R8_UART0_LCR;
       // Reserve the break bit
@@ -419,8 +419,8 @@ __attribute__ ((interrupt ("WCH-Interrupt-fast")))
 __attribute__ ((section (".highcode")))
 void USB_IRQHandler (void)
 {
-  UINT8   i;
-  UINT8   j;
+  uint8_t   i;
+  uint8_t   j;
 
   if (R8_USB_INT_FG & RB_UIF_TRANSFER)
   {
@@ -438,7 +438,7 @@ void USB_IRQHandler (void)
             R8_UEP2_CTRL = (R8_UEP2_CTRL & 0xf3) | 0x08; // OUT_NAK
             /* Save the data */
             for (j = 0; j < (MAX_PACKET_SIZE/4); j++)
-              ((UINT32 *) Ep2OUTDataBuf)[j] = ((UINT32 *) Ep2Buffer)[j];
+              ((uint32_t *) Ep2OUTDataBuf)[j] = ((uint32_t *) Ep2Buffer)[j];
           }
           else usb_irq_flag[usb_irq_w_idx] = 0;
         }break;
@@ -452,7 +452,7 @@ void USB_IRQHandler (void)
             R8_UEP1_CTRL = (R8_UEP1_CTRL & 0xf3) | 0x08; // OUT_NAK
             /* Save the data */
             for (j = 0; j < (MAX_PACKET_SIZE/4); j++)
-              ((UINT32 *) Ep1OUTDataBuf)[j] = ((UINT32 *) Ep1Buffer)[j];
+              ((uint32_t *) Ep1OUTDataBuf)[j] = ((uint32_t *) Ep1Buffer)[j];
           }
           else usb_irq_flag[usb_irq_w_idx] = 0;
         }break;
@@ -495,14 +495,14 @@ void USB_IRQHandler (void)
   }
 }
 
-UINT8 Ep4DataINFlag;
-UINT8 Ep3DataINFlag;
+uint8_t Ep4DataINFlag;
+uint8_t Ep3DataINFlag;
 
-UINT8 Ep1DataOUTLen ;
-UINT8 Ep1DataOUTFlag ;
+uint8_t Ep1DataOUTLen ;
+uint8_t Ep1DataOUTFlag ;
 
-UINT8 Ep3DataOUTFlag = 0;
-UINT8 Ep4DataOUTFlag = 0;
+uint8_t Ep3DataOUTFlag = 0;
+uint8_t Ep4DataOUTFlag = 0;
 
 /* CH341 related command frames */
 #define DEF_VEN_DEBUG_READ    0X95   /* Read two sets of registers */
@@ -535,14 +535,14 @@ UINT8 Ep4DataOUTFlag = 0;
 
 void USB_IRQProcessHandler (void)   /* USB interrupt service program */
 {
-  static  PUINT8  pDescr;
-  UINT8 len;
-  UINT32  bps;
-  UINT8   buf[8];
-  UINT8   data_dir = 0;   // Data direction
-  UINT8   ep_idx, ep_pid;
-  UINT8   i;
-  UINT8   ep_sta;
+  static  uint8_t *pDescr;
+  uint8_t   len;
+  uint32_t  bps;
+  uint8_t   buf[8];
+  uint8_t   data_dir = 0;   // Data direction
+  uint8_t   ep_idx, ep_pid;
+  uint8_t   i;
+  uint8_t   ep_sta;
 
   // for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
   {
@@ -635,11 +635,11 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
               {
                 case DEF_VEN_DEBUG_WRITE:  // Write two sets of 0X9A
                 {
-                  UINT32 bps = 0;
-                  UINT8 write_reg_add1;
-                  UINT8 write_reg_add2;
-                  UINT8 write_reg_val1;
-                  UINT8 write_reg_val2;
+                  uint32_t bps = 0;
+                  uint8_t write_reg_add1;
+                  uint8_t write_reg_add2;
+                  uint8_t write_reg_val1;
+                  uint8_t write_reg_val2;
 
                   len = 0;
 
@@ -664,8 +664,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                     // System Frequency: 36923077
                     else if (UsbSetupBuf->wIndexL == 0x88)
                     {
-                      UINT32 CalClock;
-                      UINT8 CalDiv;
+                      uint32_t CalClock;
+                      uint8_t CalDiv;
 
                       CalClock = 36923077 / 8;
                       CalDiv = 0 - UsbSetupBuf->wIndexH;
@@ -673,8 +673,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                     }
                     else if (UsbSetupBuf->wIndexL == 0x89)
                     {
-                      UINT32 CalClock;
-                      UINT8 CalDiv;
+                      uint32_t CalClock;
+                      uint8_t CalDiv;
 
                       CalClock = 36923077 / 8 / 256;
                       CalDiv = 0 - UsbSetupBuf->wIndexH;
@@ -683,8 +683,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                     // System frequency: 32000000
                     else if (UsbSetupBuf->wIndexL == 0x8A)
                     {
-                      UINT32 CalClock;
-                      UINT8 CalDiv;
+                      uint32_t CalClock;
+                      uint8_t CalDiv;
 
                       CalClock = 32000000 / 8;
                       CalDiv = 0 - UsbSetupBuf->wIndexH;
@@ -692,8 +692,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                     }
                     else if (UsbSetupBuf->wIndexL == 0x8B)
                     {
-                      UINT32 CalClock;
-                      UINT8 CalDiv;
+                      uint32_t CalClock;
+                      uint8_t CalDiv;
 
                       CalClock = 32000000 / 8 / 256;
                       CalDiv = 0 - UsbSetupBuf->wIndexH;
@@ -701,8 +701,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                     }
                     else  // 340
                     {
-                      UINT32 CalClock;
-                      UINT8 CalDiv;
+                      uint32_t CalClock;
+                      uint8_t CalDiv;
 
                       // 115384
                       if ((UsbSetupBuf->wIndexL & 0x7f) == 3)
@@ -748,10 +748,10 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                 }
                 case DEF_VEN_DEBUG_READ:   // Require callback data 0X95 /* Read two sets of registers */
                 {
-                  UINT8 read_reg_add1;
-                  UINT8 read_reg_add2;
-                  UINT8 read_reg_val1;
-                  UINT8 read_reg_val2;
+                  uint8_t read_reg_add1;
+                  uint8_t read_reg_add2;
+                  uint8_t read_reg_val1;
+                  uint8_t read_reg_val2;
 
                   read_reg_add1 = UsbSetupBuf->wValueL;
                   read_reg_add2 = UsbSetupBuf->wValueH;
@@ -771,13 +771,13 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                 // The A1 command also needs to initialize the serial port
                 case DEF_VEN_UART_INIT:  // Initialize the serial port 0XA1
                 {
-                  UINT8 reg_uart_ctrl;
-                  UINT8  parity_val;
-                  UINT8  data_bit_val;
-                  UINT8  stop_bit_val;
-                  UINT8  uart_reg1_val;
-                  UINT8  uart_reg2_val;
-                  UINT8  uart_set_m;
+                  uint8_t reg_uart_ctrl;
+                  uint8_t  parity_val;
+                  uint8_t  data_bit_val;
+                  uint8_t  stop_bit_val;
+                  uint8_t  uart_reg1_val;
+                  uint8_t  uart_reg2_val;
+                  uint8_t  uart_set_m;
 
                   len = 0;
 
@@ -839,8 +839,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       // System Frequency: 36923077
                       else if (uart_reg1_val == 0xC8)
                       {
-                        UINT32 CalClock;
-                        UINT8 CalDiv;
+                        uint32_t CalClock;
+                        uint8_t CalDiv;
 
                         CalClock = 36923077 / 8;
                         CalDiv = 0 - uart_reg2_val;
@@ -848,8 +848,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       }
                       else if (uart_reg1_val == 0xC9)
                       {
-                        UINT32 CalClock;
-                        UINT8 CalDiv;
+                        uint32_t CalClock;
+                        uint8_t CalDiv;
 
                         CalClock = 36923077 / 8 / 256;
                         CalDiv = 0 - uart_reg2_val;
@@ -858,8 +858,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       // System frequency: 32000000
                       else if (uart_reg1_val == 0xCA)
                       {
-                        UINT32 CalClock;
-                        UINT8 CalDiv;
+                        uint32_t CalClock;
+                        uint8_t CalDiv;
 
                         CalClock = 32000000 / 8;
                         CalDiv = 0 - uart_reg2_val;
@@ -867,8 +867,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       }
                       else if (uart_reg1_val == 0xCB)
                       {
-                        UINT32 CalClock;
-                        UINT8 CalDiv;
+                        uint32_t CalClock;
+                        uint8_t CalDiv;
 
                         CalClock = 32000000 / 8 / 256;
                         CalDiv = 0 - uart_reg2_val;
@@ -876,8 +876,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       }
                       else  // 340
                       {
-                        UINT32 CalClock;
-                        UINT8 CalDiv;
+                        uint32_t CalClock;
+                        uint8_t CalDiv;
 
                         // 115384
                         if ((uart_reg1_val & 0x7f) == 3)
@@ -918,7 +918,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                 }
                 case DEF_VEN_UART_M_OUT:  // Set the MODEM signal output 0XA4
                 {
-                  UINT8 reg_pb_out;
+                  uint8_t reg_pb_out;
 
                   len = 0;
                   reg_pb_out = Ep0Buffer[2];
@@ -997,7 +997,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       {
                         case 0:  // Language descriptors
                         {
-                          pDescr = (PUINT8) (&TAB_USB_LID_STR_DES[0]);
+                          pDescr = (uint8_t *) (&TAB_USB_LID_STR_DES[0]);
                           len = sizeof (TAB_USB_LID_STR_DES);
 
                           break;
@@ -1006,19 +1006,19 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                         case 2:   // iProduct
                         case 3:   // iSerialNumber
                         {
-                          UINT8 ep0_str_len;
-                          UINT8 *p_send;
-                          UINT8 *manu_str;
-                          UINT8 tmp;
+                          uint8_t ep0_str_len;
+                          uint8_t *p_send;
+                          uint8_t *manu_str;
+                          uint8_t tmp;
 
                           /* Take the length */
                           if (UsbSetupBuf->wValueL == 1)
-                            manu_str = (UINT8 *) USB_DEV_PARA_CDC_MANUFACTURE_STR;
+                            manu_str = (uint8_t *) USB_DEV_PARA_CDC_MANUFACTURE_STR;
                           else if (UsbSetupBuf->wValueL == 2)
-                            manu_str = (UINT8 *) USB_DEV_PARA_CDC_PRODUCT_STR;
+                            manu_str = (uint8_t *) USB_DEV_PARA_CDC_PRODUCT_STR;
                           else if (UsbSetupBuf->wValueL == 3)
-                            manu_str = (UINT8 *) USB_DEV_PARA_CDC_SERIAL_STR;
-                          ep0_str_len = (UINT8) strlen ((char *) manu_str);
+                            manu_str = (uint8_t *) USB_DEV_PARA_CDC_SERIAL_STR;
+                          ep0_str_len = (uint8_t) strlen ((char *) manu_str);
                           p_send = ep0_send_buf;
                           *p_send++ = ep0_str_len*2 + 2;
                           *p_send++ = 0x03;
@@ -1041,7 +1041,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                     }
                     case 6:  // Device Qualified Descriptor
                     {
-                      pDescr = (PUINT8) (&My_QueDescr[0]);
+                      pDescr = (uint8_t *) (&My_QueDescr[0]);
                       len = sizeof (My_QueDescr);
                       break;
                     }
@@ -1156,7 +1156,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                 {
                   case DEF_SET_LINE_CODING: /* SET_LINE_CODING */
                   {
-                    UINT8 i;
+                    uint8_t i;
                     dg_log ("SET_LINE_CODING\r\n");
                     for (i = 0; i < 8; i++)
                     {
@@ -1178,8 +1178,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   }
                   case DEF_SET_CONTROL_LINE_STATE:  /* SET_CONTROL_LINE_STATE */
                   {
-                    UINT8  carrier_sta;
-                    UINT8  present_sta;
+                    uint8_t  carrier_sta;
+                    uint8_t  present_sta;
                     /* Line status */
                     dg_log ("ctl %02x %02x\r\n", Ep0Buffer[2], Ep0Buffer[3]);
                     carrier_sta = Ep0Buffer[2] & (1<<1);   // RTS status
@@ -1417,11 +1417,11 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
               /* Set the serial port */
               case DEF_SET_LINE_CODING:
               {
-                UINT32 set_bps;
-                UINT8  data_bit;
-                UINT8  stop_bit;
-                UINT8  ver_bit;
-                UINT8  set_stop_bit;
+                uint32_t set_bps;
+                uint8_t  data_bit;
+                uint8_t  stop_bit;
+                uint8_t  ver_bit;
+                uint8_t  set_stop_bit;
 
                 memcpy (&set_bps, Ep0Buffer, 4);
                 stop_bit = Ep0Buffer[4];
@@ -1533,11 +1533,11 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void USBDevEPnINSetStatus (UINT8 ep_num, UINT8 type, UINT8 sta)
+void USBDevEPnINSetStatus (uint8_t ep_num, uint8_t type, uint8_t sta)
 {
-  UINT8 *p_UEPn_CTRL;
+  uint8_t *p_UEPn_CTRL;
 
-  p_UEPn_CTRL = (UINT8 *) (USB_BASE_ADDR + 0x22 + ep_num * 4);
+  p_UEPn_CTRL = (uint8_t *) (USB_BASE_ADDR + 0x22 + ep_num * 4);
   if (type == ENDP_TYPE_IN) *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03))) | sta;
   else *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03<<2))) | (sta<<2);
 }
@@ -1588,11 +1588,11 @@ void InitCDCDevice (void)
   /* Single 64-Byte Receive Buffer (OUT), Single 64-Byte Send Buffer (IN) */
   R8_UEP2_3_MOD = RB_UEP2_RX_EN | RB_UEP2_TX_EN | RB_UEP3_TX_EN;
 
-  R16_UEP0_DMA = (UINT16) (UINT32) &Ep0Buffer[0];
-  R16_UEP1_DMA = (UINT16) (UINT32) &Ep1Buffer[0];
-  R16_UEP2_DMA = (UINT16) (UINT32) &Ep2Buffer[0];
-  R16_UEP3_DMA = (UINT16) (UINT32) &Ep3Buffer[0];
-  // R16_UEP4_DMA = (UINT16) (UINT32) &Ep2Buffer[0];
+  R16_UEP0_DMA = (uint16_t) (uint32_t) &Ep0Buffer[0];
+  R16_UEP1_DMA = (uint16_t) (uint32_t) &Ep1Buffer[0];
+  R16_UEP2_DMA = (uint16_t) (uint32_t) &Ep2Buffer[0];
+  R16_UEP3_DMA = (uint16_t) (uint32_t) &Ep3Buffer[0];
+  // R16_UEP4_DMA = (uint16_t) (uint32_t) &Ep2Buffer[0];
 
   /* ENDPOINT 0 STATE: OUT---ACK IN--NAK */
   R8_UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
@@ -1644,7 +1644,7 @@ void InitCDCDevice (void)
 *******************************************************************************/
 void InitUSBDefPara (void)
 {
-  UINT8 i;
+  uint8_t i;
 
   Uart0Para.BaudRate = 115200;
   Uart0Para.DataBits = HAL_UART_8_BITS_PER_CHAR;
@@ -1698,14 +1698,14 @@ void InitUSBDevice (void)
 * Output         : None
 * Return: The status of the send
 *******************************************************************************/
-UINT8 SendUSBData (UINT8 *p_send_dat, UINT16 send_len)
+uint8_t SendUSBData (uint8_t *p_send_dat, uint16_t send_len)
 {
-  UINT8 sta = 0;
+  uint8_t sta = 0;
 
   memcpy (&Ep1Buffer[MAX_PACKET_SIZE], p_send_dat, send_len);
 
   Ep1DataINFlag = 0;
-  R8_UEP1_T_LEN = (UINT8) send_len;
+  R8_UEP1_T_LEN = (uint8_t) send_len;
   PFIC_DisableIRQ (USB_IRQn);
   R8_UEP1_CTRL = R8_UEP1_CTRL & 0xfc; // IN_ACK
   PFIC_EnableIRQ (USB_IRQn);
