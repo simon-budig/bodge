@@ -13,7 +13,7 @@
 #define MAX_PACKET_SIZE         64
 
 /* Device Descriptor */
-const uint8_t TAB_USB_CDC_DEV_DES[18] =
+const uint8_t TAB_USB_CDC_DEV_DES[] =
 {
   0x12,        // bLength
   0x01,        // bDescriptorType
@@ -30,7 +30,6 @@ const uint8_t TAB_USB_CDC_DEV_DES[18] =
   0x03,        // iSeriial
   0x01         // bNumConfigurations
 };
-
 
 /* Configuration Descriptor */
 const uint8_t TAB_USB_CDC_CFG_DES[] =
@@ -55,9 +54,9 @@ const uint8_t TAB_USB_CDC_CFG_DES[] =
 };
 
 /* Device Qualified Descriptor */
-const uint8_t My_QueDescr[ ] = { 0x0A, 0x06, 0x00, 0x02, 0xFF, 0x00, 0xFF, 0x40, 0x01, 0x00 };
+const uint8_t My_QueDescr[] = { 0x0a, 0x06, 0x00, 0x02, 0xff, 0x00, 0xff, 0x40, 0x01, 0x00 };
 
-uint8_t TAB_CDC_LINE_CODING[ ]  =
+uint8_t TAB_CDC_LINE_CODING[]  =
 {
   0x85,   /* baud rate*/
   0x20,
@@ -71,7 +70,7 @@ uint8_t TAB_CDC_LINE_CODING[ ]  =
 #define DEF_IC_PRG_VER     0x31
 
 // Language descriptors
-const uint8_t TAB_USB_LID_STR_DES[ ] = { 0x04, 0x03, 0x09, 0x04 };
+const uint8_t TAB_USB_LID_STR_DES[] = { 0x04, 0x03, 0x09, 0x04 };
 
 const uint8_t USB_DEV_PARA_CDC_SERIAL_STR[]      = "WCH121212TS1";
 const uint8_t USB_DEV_PARA_CDC_PRODUCT_STR[]     = "USB2.0 To Serial Port";
@@ -317,6 +316,7 @@ void CH341RegWrite (uint8_t reg_add, uint8_t reg_val)
   }
 }
 
+
 /*******************************************************************************
 * Function Name  : CH341RegRead
 * Description    : Reads the registers of the CH341
@@ -381,6 +381,7 @@ uint8_t CH341RegRead (uint8_t reg_add, uint8_t *reg_val)
   return find_flag;
 }
 
+
 /* endpoints enumeration */
 #define ENDP0    0x00
 #define ENDP1    0x01
@@ -428,7 +429,7 @@ void USB_IRQHandler (void)
     if ((R8_USB_INT_ST & MASK_UIS_TOKEN) != MASK_UIS_TOKEN) {     // Non-idle
       /* Write directly */
       usb_irq_flag[usb_irq_w_idx] = 1;
-      usb_irq_pid[usb_irq_w_idx]  = R8_USB_INT_ST;  // & 0x3f;// (0x30 | 0x0F);
+      usb_irq_pid[usb_irq_w_idx]  = R8_USB_INT_ST;  // & 0x3f;// (0x30 | 0x0f);
       usb_irq_len[usb_irq_w_idx]  = R8_USB_RX_LEN;
 
       switch (usb_irq_pid[usb_irq_w_idx]& 0x3f) {   // Analyze the current endpoint
@@ -495,6 +496,7 @@ void USB_IRQHandler (void)
   }
 }
 
+
 uint8_t Ep4DataINFlag;
 uint8_t Ep3DataINFlag;
 
@@ -505,14 +507,14 @@ uint8_t Ep3DataOUTFlag = 0;
 uint8_t Ep4DataOUTFlag = 0;
 
 /* CH341 related command frames */
-#define DEF_VEN_DEBUG_READ    0X95   /* Read two sets of registers */
-#define DEF_VEN_DEBUG_WRITE   0X9A   /* Write two sets of registers */
-#define DEF_VEN_UART_INIT     0XA1   /* Initialize the serial port */
-#define DEF_VEN_UART_M_OUT    0XA4   /* Set the MODEM signal output */
-#define DEF_VEN_BUF_CLEAR     0XB2   /* Clear incomplete data */
-#define DEF_VEN_I2C_CMD_X     0X54   /* Issue a command for the I2C interface and execute it immediately */
-#define DEF_VEN_DELAY_MS      0X5E   /* The specified time is delayed in milliseconds */
-#define DEF_VEN_GET_VER       0X5F   /* Get the chip version */
+#define DEF_VEN_DEBUG_READ    0x95   /* Read two sets of registers */
+#define DEF_VEN_DEBUG_WRITE   0x9a   /* Write two sets of registers */
+#define DEF_VEN_UART_INIT     0xa1   /* Initialize the serial port */
+#define DEF_VEN_UART_M_OUT    0xa4   /* Set the MODEM signal output */
+#define DEF_VEN_BUF_CLEAR     0xb2   /* Clear incomplete data */
+#define DEF_VEN_I2C_CMD_X     0x54   /* Issue a command for the I2C interface and execute it immediately */
+#define DEF_VEN_DELAY_MS      0x5e   /* The specified time is delayed in milliseconds */
+#define DEF_VEN_GET_VER       0x5f   /* Get the chip version */
 
 /* Class requests */
 //  3.1 Requests---Abstract Control Model
@@ -523,7 +525,7 @@ uint8_t Ep4DataOUTFlag = 0;
 #define DEF_CLEAR_COMM_FEATURE         0x04
 #define DEF_SET_LINE_CODING            0x20   // Configures DTE rate, stop-bits, parity, and number-of-character
 #define DEF_GET_LINE_CODING            0x21   // This request allows the host to find out the currently configured line coding.
-// #define DEF_SET_CTL_LINE_STE         0X22   // This request generates RS-232/V.24 style control signals.
+// #define DEF_SET_CTL_LINE_STE         0x22   // This request generates RS-232/V.24 style control signals.
 #define DEF_SET_CONTROL_LINE_STATE     0x22
 #define DEF_SEND_BREAK                 0x23
 
@@ -629,11 +631,11 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
             if (UsbSetupBuf->bRequestType & USB_REQ_TYP_IN) data_dir = USB_REQ_TYP_IN;
 
             /* Vendor request */
-            if (( UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_VENDOR)
+            if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_VENDOR)
             {
               switch (SetupReqCode)
               {
-                case DEF_VEN_DEBUG_WRITE:  // Write two sets of 0X9A
+                case DEF_VEN_DEBUG_WRITE:  // Write two sets of 0x9a
                 {
                   uint32_t bps = 0;
                   uint8_t write_reg_add1;
@@ -681,7 +683,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       bps = CalClock / CalDiv;
                     }
                     // System frequency: 32000000
-                    else if (UsbSetupBuf->wIndexL == 0x8A)
+                    else if (UsbSetupBuf->wIndexL == 0x8a)
                     {
                       uint32_t CalClock;
                       uint8_t CalDiv;
@@ -690,7 +692,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       CalDiv = 0 - UsbSetupBuf->wIndexH;
                       bps = CalClock / CalDiv;
                     }
-                    else if (UsbSetupBuf->wIndexL == 0x8B)
+                    else if (UsbSetupBuf->wIndexL == 0x8b)
                     {
                       uint32_t CalClock;
                       uint8_t CalDiv;
@@ -746,7 +748,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
 
                   break;
                 }
-                case DEF_VEN_DEBUG_READ:   // Require callback data 0X95 /* Read two sets of registers */
+                case DEF_VEN_DEBUG_READ:   // Require callback data 0x95 /* Read two sets of registers */
                 {
                   uint8_t read_reg_add1;
                   uint8_t read_reg_add2;
@@ -769,7 +771,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   break;
                 }
                 // The A1 command also needs to initialize the serial port
-                case DEF_VEN_UART_INIT:  // Initialize the serial port 0XA1
+                case DEF_VEN_UART_INIT:  // Initialize the serial port 0xa1
                 {
                   uint8_t reg_uart_ctrl;
                   uint8_t  parity_val;
@@ -821,7 +823,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                     else
                     {
                       uart_set_m = 1;
-                      uart_reg1_val = uart_reg1_val & 0xC7;
+                      uart_reg1_val = uart_reg1_val & 0xc7;
                     }
 
                     if (uart_set_m)
@@ -837,7 +839,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       }
 
                       // System Frequency: 36923077
-                      else if (uart_reg1_val == 0xC8)
+                      else if (uart_reg1_val == 0xc8)
                       {
                         uint32_t CalClock;
                         uint8_t CalDiv;
@@ -846,7 +848,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                         CalDiv = 0 - uart_reg2_val;
                         bps = CalClock / CalDiv;
                       }
-                      else if (uart_reg1_val == 0xC9)
+                      else if (uart_reg1_val == 0xc9)
                       {
                         uint32_t CalClock;
                         uint8_t CalDiv;
@@ -856,7 +858,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                         bps = CalClock / CalDiv;
                       }
                       // System frequency: 32000000
-                      else if (uart_reg1_val == 0xCA)
+                      else if (uart_reg1_val == 0xca)
                       {
                         uint32_t CalClock;
                         uint8_t CalDiv;
@@ -865,7 +867,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                         CalDiv = 0 - uart_reg2_val;
                         bps = CalClock / CalDiv;
                       }
-                      else if (uart_reg1_val == 0xCB)
+                      else if (uart_reg1_val == 0xcb)
                       {
                         uint32_t CalClock;
                         uint8_t CalDiv;
@@ -916,7 +918,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   }
                   break;
                 }
-                case DEF_VEN_UART_M_OUT:  // Set the MODEM signal output 0XA4
+                case DEF_VEN_UART_M_OUT:  // Set the MODEM signal output 0xa4
                 {
                   uint8_t reg_pb_out;
 
@@ -926,7 +928,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   else UART0_OUT_Val = 0;
                   break;
                 }
-                case DEF_VEN_BUF_CLEAR: // 0XB2  /* Clear incomplete data */
+                case DEF_VEN_BUF_CLEAR: // 0xb2  /* Clear incomplete data */
                 {
                   len = 0;
 
@@ -934,17 +936,17 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   VENSer0ParaChange = 1; // Reinitialize to erase all data
                   break;
                 }
-                case DEF_VEN_I2C_CMD_X:  // 0X54 Issue the command for the I2C interface and execute it immediately
+                case DEF_VEN_I2C_CMD_X:  // 0x54 Issue the command for the I2C interface and execute it immediately
                 {
                   len = 0;
                   break;
                 }
-                case DEF_VEN_DELAY_MS:  // 0X5E Specify the time in milliseconds
+                case DEF_VEN_DELAY_MS:  // 0x5e Specify the time in milliseconds
                 {
                   len = 0;
                   break;
                 }
-                case DEF_VEN_GET_VER:   // 0X5E Get the chip version // Need to return data --> version number
+                case DEF_VEN_GET_VER:   // 0x5e Get the chip version // Need to return data --> version number
                 {
                   len = 2;
                   pDescr = buf;
@@ -956,7 +958,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   break;
                 }
                 default:
-                  // len = 0xFF;
+                  // len = 0xff;
                   len = 0;
                   break;
               }
@@ -1034,7 +1036,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                           break;
                         }
                         default:
-                          len = 0xFF;    // Unsupported descriptor types
+                          len = 0xff;    // Unsupported descriptor types
                           break;
                       }
                       break;
@@ -1046,7 +1048,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       break;
                     }
                     default:
-                      len = 0xFF;                                  // Unsupported descriptor types
+                      len = 0xff;                                  // Unsupported descriptor types
                       break;
                   }
                   if (SetupLen > len) SetupLen = len;            // Limit the overall length
@@ -1085,7 +1087,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   dg_log ("CLEAR_FEATURE\r\n");
                   len = 0;
                   /* Clear the device */
-                  if (( UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_DEVICE)
+                  if ((UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_DEVICE)
                   {
                     R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
                     R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
@@ -1106,7 +1108,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                     cdc_uart_sta_trans_step = 0;
                     ven_ep1_trans_step = 0;
                   }
-                  else if (( UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_ENDP)  // endpoint
+                  else if ((UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_ENDP)  // endpoint
                   {
                     switch (UsbSetupBuf->wIndexL)   // Judgment endpoint
                     {
@@ -1118,10 +1120,10 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       case 0x02: R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
                       case 0x81: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
                       case 0x01: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
-                      default: len = 0xFF;  break;
+                      default: len = 0xff;  break;
                     }
                   }
-                  else len = 0xFF;                                  // It's not that the endpoint isn't supported
+                  else len = 0xff;                                  // It's not that the endpoint isn't supported
 
                   break;
                 }
@@ -1142,12 +1144,12 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   break;
                 }
                 default:
-                  len = 0xFF;                                       // The operation failed
+                  len = 0xff;                                       // The operation failed
                   break;
               }
             }
             /* Class requests */
-            else if (( UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_CLASS)
+            else if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_CLASS)
             {
               /* The host is downloaded */
               if (data_dir == USB_REQ_TYP_OUT)
@@ -1173,7 +1175,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                       CDCSetSerIdx = 1;
                       len = 0x00;
                     }
-                    else len = 0xFF;
+                    else len = 0xff;
                     break;
                   }
                   case DEF_SET_CONTROL_LINE_STATE:  /* SET_CONTROL_LINE_STATE */
@@ -1190,7 +1192,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   default:
                   {
                     dg_log ("CDC ReqCode%x\r\n", SetupReqCode);
-                    len = 0xFF;                                       // The operation failed
+                    len = 0xff;                                       // The operation failed
                     break;
                   }
                 }
@@ -1224,22 +1226,22 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                   default:
                   {
                     dg_log ("CDC ReqCode%x\r\n", SetupReqCode);
-                    len = 0xFF;                                       // The operation failed
+                    len = 0xff;                                       // The operation failed
                     break;
                   }
                 }
               }
             }
 
-            else len = 0xFF;   /* fail */
+            else len = 0xff;   /* fail */
           }
           else
           {
-            len = 0xFF; // The length of the SETUP package is incorrect
+            len = 0xff; // The length of the SETUP package is incorrect
           }
-          if (len == 0xFF)  // The operation failed
+          if (len == 0xff)  // The operation failed
           {
-            SetupReqCode = 0xFF;
+            SetupReqCode = 0xff;
             PFIC_DisableIRQ (USB_IRQn);
             R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_STALL | UEP_T_RES_STALL;  // STALL
             PFIC_EnableIRQ (USB_IRQn);
@@ -1268,21 +1270,21 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;  // The default packet is DATA1
               PFIC_EnableIRQ (USB_IRQn);
             }
-            else if (SetupReqCode ==  DEF_VEN_UART_INIT)  // 0XA1 Initialize the serial port
+            else if (SetupReqCode ==  DEF_VEN_UART_INIT)  // 0xa1 Initialize the serial port
             {
               R8_UEP0_T_LEN = len;
               PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
               PFIC_EnableIRQ (USB_IRQn);
             }
-            else if (SetupReqCode ==  DEF_VEN_DEBUG_WRITE)  // 0X9A
+            else if (SetupReqCode ==  DEF_VEN_DEBUG_WRITE)  // 0x9a
             {
               R8_UEP0_T_LEN = len;
               PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
               PFIC_EnableIRQ (USB_IRQn);
             }
-            else if (SetupReqCode ==  DEF_VEN_UART_M_OUT)  // 0XA4
+            else if (SetupReqCode ==  DEF_VEN_UART_M_OUT)  // 0xa4
             {
               R8_UEP0_T_LEN = len;
               PFIC_DisableIRQ (USB_IRQn);
@@ -1371,8 +1373,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
               break;
             }
             // Maker reads
-            case DEF_VEN_DEBUG_READ:     // 0X95
-            case DEF_VEN_GET_VER:        // 0X5F
+            case DEF_VEN_DEBUG_READ:     // 0x95
+            case DEF_VEN_GET_VER:        // 0x5f
             {
               PFIC_DisableIRQ (USB_IRQn);
               R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_ACK | UEP_T_RES_NAK;
@@ -1524,6 +1526,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
   }
 }
 
+
 /*******************************************************************************
 * Function Name  : USBDevEPnINSetStatus
 * Description    : Endpoint state setting function
@@ -1541,6 +1544,7 @@ void USBDevEPnINSetStatus (uint8_t ep_num, uint8_t type, uint8_t sta)
   if (type == ENDP_TYPE_IN) *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03))) | sta;
   else *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03<<2))) | (sta<<2);
 }
+
 
 /*******************************************************************************
 * Function Name  : USBParaInit
@@ -1619,7 +1623,7 @@ void InitCDCDevice (void)
   R8_USB_CTRL = RB_UC_DEV_PU_EN | RB_UC_INT_BUSY | RB_UC_DMA_EN;
 
   // Clear the break sign
-  R8_USB_INT_FG = 0xFF;
+  R8_USB_INT_FG = 0xff;
 
   // Unified program query?
   // Turn on interrupt, pend, transfer complete, bus reset
@@ -1677,6 +1681,7 @@ void InitUSBDefPara (void)
   }
 }
 
+
 /*******************************************************************************
 * Function Name  : InitUSBDevice
 * Description    : Initialize USB
@@ -1688,6 +1693,7 @@ void InitUSBDevice (void)
 {
   InitCDCDevice ();
 }
+
 
 /* Communications */
 /*******************************************************************************
