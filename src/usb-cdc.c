@@ -379,561 +379,544 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
   uint8_t   i;
 
   for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
-  {
-    i = usb_irq_r_idx;
-
-    if (usb_irq_flag[i])
     {
-      usb_irq_r_idx++;
-      if (usb_irq_r_idx >= USB_IRQ_FLAG_NUM) usb_irq_r_idx = 0;
+      i = usb_irq_r_idx;
 
-      switch (usb_irq_pid[i] & 0x3f)   // Analyze the action token and endpoint number
-      {
-        case UIS_TOKEN_IN | 4:  // endpoint #4 Batch endpoint upload completed
+      if (usb_irq_flag[i])
         {
-          Ep4DataINFlag = ~0;
-          break;
-        }
-        case UIS_TOKEN_IN | 3:  // endpoint #3 The bulk endpoint upload is complete
-        {
-          Ep3DataINFlag = ~0;
-          break;
-        }
-        case UIS_TOKEN_OUT | 2:    // endpoint #2 The batch endpoint upload is complete
-        {
-          dg_log ("usb_rec\n");
-          len = usb_irq_len[i];
-          {
-            // Ep2OUTDataBuf
-            for (int i = 0; i < len; i++)
-              dg_log ("%02x  ", Ep2OUTDataBuf[i]);
-            dg_log ("\n");
+          usb_irq_r_idx++;
 
-            // Data delivery of CH341
-            Ep2DataOUTFlag = 1;
-            Ep2DataOUTLen = len;
-            PFIC_DisableIRQ (USB_IRQn);
-            R8_UEP2_CTRL = R8_UEP2_CTRL & 0xf3; // OUT_ACK
-            PFIC_EnableIRQ (USB_IRQn);
-          }
-          break;
-        }
-        case UIS_TOKEN_IN | 2:  // endpoint #2 Bulk endpoint upload completed
-        {
-          Ep2DataINFlag = 1;
-          break;
-        }
-        case UIS_TOKEN_OUT | 1:    // endpoint #1 Batch endpoint upload is complete
-        {
-          dg_log ("usb_rec\n");
-          len = usb_irq_len[i];
-          // Ep1OUTDataBuf
-          for (int i = 0; i < len; i++)
-            dg_log ("%02x  ", Ep1OUTDataBuf[i]);
-          dg_log ("\n");
+          if (usb_irq_r_idx >= USB_IRQ_FLAG_NUM)
+            usb_irq_r_idx = 0;
 
-          // Data delivery of CH341
-          Ep1DataOUTFlag = 1;
-          Ep1DataOUTLen = len;
-          PFIC_DisableIRQ (USB_IRQn);
-          R8_UEP1_CTRL = R8_UEP1_CTRL & 0xf3; // OUT_ACK
-          PFIC_EnableIRQ (USB_IRQn);
-          break;
-        }
-        case UIS_TOKEN_IN | 1:   // endpoint #1 Interrupt the endpoint upload is complete
-        {
-          Ep1DataINFlag = 1;
-          break;
-        }
-        case UIS_TOKEN_SETUP | 0:    // endpoint #0 SETUP
-        {
-          len = usb_irq_len[i];
-          if (len == sizeof (USB_SETUP_REQ))
-          {
-            SetupLen = UsbSetupBuf->wLengthL;
-            if (UsbSetupBuf->wLengthH) SetupLen = 0xff;
-
-            len = 0;                                                 // The default is Succeeded and the upload is 0 length
-            SetupReqCode = UsbSetupBuf->bRequest;
-
-            /* Data direction */
-            data_dir = USB_REQ_TYP_OUT;
-            if (UsbSetupBuf->bRequestType & USB_REQ_TYP_IN)
-              data_dir = USB_REQ_TYP_IN;
-
-            // Standard Request
-            if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_STANDARD)
+          switch (usb_irq_pid[i] & 0x3f)   // Analyze the action token and endpoint number
             {
-              switch (SetupReqCode)  // Request code
-              {
-                case USB_GET_DESCRIPTOR:  // Get a descriptor
-                {
-                  switch (UsbSetupBuf->wValueH)
+              case UIS_TOKEN_IN | 4:  // endpoint #4 Batch endpoint upload completed
+                 Ep4DataINFlag = ~0;
+                 break;
+
+              case UIS_TOKEN_IN | 3:  // endpoint #3 The bulk endpoint upload is complete
+                Ep3DataINFlag = ~0;
+                break;
+
+              case UIS_TOKEN_OUT | 2:    // endpoint #2 The batch endpoint upload is complete
+                dg_log ("usb_rec\n");
+                len = usb_irq_len[i];
+
+                // Ep2OUTDataBuf
+                for (int i = 0; i < len; i++)
+                  dg_log ("%02x  ", Ep2OUTDataBuf[i]);
+                dg_log ("\n");
+
+                // Data delivery of CH341
+                Ep2DataOUTFlag = 1;
+                Ep2DataOUTLen = len;
+                PFIC_DisableIRQ (USB_IRQn);
+                R8_UEP2_CTRL = R8_UEP2_CTRL & 0xf3; // OUT_ACK
+                PFIC_EnableIRQ (USB_IRQn);
+                break;
+
+              case UIS_TOKEN_IN | 2:  // endpoint #2 Bulk endpoint upload completed
+                Ep2DataINFlag = 1;
+                break;
+
+              case UIS_TOKEN_OUT | 1:    // endpoint #1 Batch endpoint upload is complete
+                dg_log ("usb_rec\n");
+                len = usb_irq_len[i];
+                // Ep1OUTDataBuf
+                for (int i = 0; i < len; i++)
+                  dg_log ("%02x  ", Ep1OUTDataBuf[i]);
+                dg_log ("\n");
+
+                // Data delivery of CH341
+                Ep1DataOUTFlag = 1;
+                Ep1DataOUTLen = len;
+                PFIC_DisableIRQ (USB_IRQn);
+                R8_UEP1_CTRL = R8_UEP1_CTRL & 0xf3; // OUT_ACK
+                PFIC_EnableIRQ (USB_IRQn);
+                break;
+
+              case UIS_TOKEN_IN | 1:   // endpoint #1 Interrupt the endpoint upload is complete
+                Ep1DataINFlag = 1;
+                break;
+
+              case UIS_TOKEN_SETUP | 0:    // endpoint #0 SETUP
+                len = usb_irq_len[i];
+                if (len == sizeof (USB_SETUP_REQ))
                   {
-                    case 1: // Device descriptor
-                    {
-                      memcpy (ep0_send_buf,
-                             &TAB_USB_CDC_DEV_DES[0],
-                             sizeof (TAB_USB_CDC_DEV_DES));
+                    SetupLen = UsbSetupBuf->wLengthL;
+                    if (UsbSetupBuf->wLengthH)
+                      SetupLen = 0xff;
 
-                      pDescr = ep0_send_buf;
-                      len = sizeof (TAB_USB_CDC_DEV_DES);
-                      break;
-                    }
-                    case 2:  // Configure descriptors
-                    {
-                      memcpy (ep0_send_buf,
-                             &TAB_USB_CDC_CFG_DES[0],
-                             sizeof (TAB_USB_CDC_CFG_DES));
-                      pDescr = ep0_send_buf;
-                      len = sizeof (TAB_USB_CDC_CFG_DES);
-                      break;
-                    }
-                    case 3:  // String descriptors
-                    {
-                      dg_log ("str %d\r\n", UsbSetupBuf->wValueL);
-                      dg_log ("str %d\r\n", UsbSetupBuf->wValueL);
-                      switch (UsbSetupBuf->wValueL)
+                    len = 0;          // The default is Succeeded and the upload is 0 length
+                    SetupReqCode = UsbSetupBuf->bRequest;
+
+                    /* Data direction */
+                    data_dir = USB_REQ_TYP_OUT;
+                    if (UsbSetupBuf->bRequestType & USB_REQ_TYP_IN)
+                      data_dir = USB_REQ_TYP_IN;
+
+                    // Standard Request
+                    if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_STANDARD)
                       {
-                        case 0:  // Language descriptors
-                        {
-                          pDescr = (uint8_t *) (&TAB_USB_LID_STR_DES[0]);
-                          len = sizeof (TAB_USB_LID_STR_DES);
-
-                          break;
-                        }
-                        case 1:   // iManufacturer
-                        case 2:   // iProduct
-                        case 3:   // iSerialNumber
-                        {
-                          uint8_t ep0_str_len;
-                          uint8_t *p_send;
-                          uint8_t *manu_str;
-                          uint8_t tmp;
-
-                          /* Take the length */
-                          if (UsbSetupBuf->wValueL == 1)
-                            manu_str = (uint8_t *) USB_DEV_PARA_CDC_MANUFACTURE_STR;
-                          else if (UsbSetupBuf->wValueL == 2)
-                            manu_str = (uint8_t *) USB_DEV_PARA_CDC_PRODUCT_STR;
-                          else if (UsbSetupBuf->wValueL == 3)
-                            manu_str = (uint8_t *) USB_DEV_PARA_CDC_SERIAL_STR;
-                          ep0_str_len = (uint8_t) strlen ((char *) manu_str);
-                          p_send = ep0_send_buf;
-                          *p_send++ = ep0_str_len*2 + 2;
-                          *p_send++ = 0x03;
-                          for (tmp = 0; tmp < ep0_str_len; tmp++)
+                        switch (SetupReqCode)  // Request code
                           {
-                            *p_send++ = manu_str[tmp];
-                            *p_send++ = 0x00;
+                            case USB_GET_DESCRIPTOR:  // Get a descriptor
+                              switch (UsbSetupBuf->wValueH)
+                                {
+                                  case 1: // Device descriptor
+                                    memcpy (ep0_send_buf,
+                                           &TAB_USB_CDC_DEV_DES[0],
+                                           sizeof (TAB_USB_CDC_DEV_DES));
+
+                                    pDescr = ep0_send_buf;
+                                    len = sizeof (TAB_USB_CDC_DEV_DES);
+                                    break;
+
+                                  case 2:  // Configure descriptors
+                                    memcpy (ep0_send_buf,
+                                           &TAB_USB_CDC_CFG_DES[0],
+                                           sizeof (TAB_USB_CDC_CFG_DES));
+                                    pDescr = ep0_send_buf;
+                                    len = sizeof (TAB_USB_CDC_CFG_DES);
+                                    break;
+
+                                  case 3:  // String descriptors
+                                    dg_log ("str %d\r\n", UsbSetupBuf->wValueL);
+                                    dg_log ("str %d\r\n", UsbSetupBuf->wValueL);
+                                    switch (UsbSetupBuf->wValueL)
+                                      {
+                                        case 0:  // Language descriptors
+                                          pDescr = (uint8_t *) (&TAB_USB_LID_STR_DES[0]);
+                                          len = sizeof (TAB_USB_LID_STR_DES);
+
+                                          break;
+
+                                        case 1:   // iManufacturer
+                                        case 2:   // iProduct
+                                        case 3:   // iSerialNumber
+                                          {
+                                            uint8_t ep0_str_len;
+                                            uint8_t *p_send;
+                                            uint8_t *manu_str;
+                                            uint8_t tmp;
+
+                                            /* Take the length */
+                                            if (UsbSetupBuf->wValueL == 1)
+                                              manu_str = (uint8_t *) USB_DEV_PARA_CDC_MANUFACTURE_STR;
+                                            else if (UsbSetupBuf->wValueL == 2)
+                                              manu_str = (uint8_t *) USB_DEV_PARA_CDC_PRODUCT_STR;
+                                            else if (UsbSetupBuf->wValueL == 3)
+                                              manu_str = (uint8_t *) USB_DEV_PARA_CDC_SERIAL_STR;
+
+                                            ep0_str_len = (uint8_t) strlen ((char *) manu_str);
+                                            p_send = ep0_send_buf;
+                                            *p_send++ = ep0_str_len*2 + 2;
+                                            *p_send++ = 0x03;
+                                            for (tmp = 0; tmp < ep0_str_len; tmp++)
+                                            {
+                                              *p_send++ = manu_str[tmp];
+                                              *p_send++ = 0x00;
+                                            }
+
+                                            pDescr = ep0_send_buf;
+                                            len = ep0_send_buf[0];
+                                          }
+                                          break;
+
+                                        default:
+                                          len = 0xff;    // Unsupported descriptor types
+                                          break;
+                                      }
+                                    break;
+
+                                  case 6:  // Device Qualified Descriptor
+                                    pDescr = (uint8_t *) (&My_QueDescr[0]);
+                                    len = sizeof (My_QueDescr);
+                                    break;
+
+                                  default:
+                                    len = 0xff;                                  // Unsupported descriptor types
+                                    break;
+                                }
+                              if (SetupLen > len)
+                                SetupLen = len;            // Limit the overall length
+
+                              len = (SetupLen >= THIS_ENDP0_SIZE) ? THIS_ENDP0_SIZE : SetupLen;  // The length of this transfer
+                              memcpy (Ep0Buffer, pDescr, len);                 /* Load the feed */
+                              SetupLen -= len;
+                              pDescr += len;
+                              break;
+
+                            case USB_SET_ADDRESS:  // Set the address
+                              dg_log ("SET_ADDRESS:%d\r\n", UsbSetupBuf->wValueL);
+                              devinf.gUsbFlag |= DEF_BIT_USB_ADDRESS;
+                              devinf.UsbAddress = UsbSetupBuf->wValueL;    // Staging USB device addresses
+                              break;
+
+                            case USB_GET_CONFIGURATION:
+                              dg_log ("GET_CONFIGURATION\r\n");
+                              Ep0Buffer[0] = devinf.UsbConfig;
+                              if (SetupLen >= 1)
+                                len = 1;
+                              break;
+
+                            case USB_SET_CONFIGURATION:
+                              dg_log ("SET_CONFIGURATION\r\n");
+                              devinf.gUsbFlag |= DEF_BIT_USB_SET_CFG;
+                              devinf.UsbConfig = UsbSetupBuf->wValueL;
+                              break;
+
+                            case USB_CLEAR_FEATURE:
+                              dg_log ("CLEAR_FEATURE\r\n");
+                              len = 0;
+                              /* Clear the device */
+                              if ((UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_DEVICE)
+                                {
+                                  R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
+                                  R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
+                                  R8_UEP3_CTRL = (R8_UEP3_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
+                                  R8_UEP4_CTRL = (R8_UEP4_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
+
+                                  // The state variable is reset
+                                  Ep1DataINFlag = 1;
+                                  Ep2DataINFlag = 1;
+                                  Ep3DataINFlag = 1;
+                                  Ep4DataINFlag = 1;
+
+                                  Ep1DataOUTFlag = 0;
+                                  Ep2DataOUTFlag = 0;
+                                  Ep3DataOUTFlag = 0;
+                                  Ep4DataOUTFlag = 0;
+                                }
+                              else if ((UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_ENDP)  // endpoint
+                                {
+                                  switch (UsbSetupBuf->wIndexL)   // Judgment endpoint
+                                    {
+                                      case 0x84: R8_UEP4_CTRL = (R8_UEP4_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
+                                      case 0x04: R8_UEP4_CTRL = (R8_UEP4_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
+                                      case 0x83: R8_UEP3_CTRL = (R8_UEP3_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
+                                      case 0x03: R8_UEP3_CTRL = (R8_UEP3_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
+                                      case 0x82: R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
+                                      case 0x02: R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
+                                      case 0x81: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
+                                      case 0x01: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
+                                      default: len = 0xff;  break;
+                                    }
+                                }
+                              else
+                                {
+                                  len = 0xff;                                  // It's not that the endpoint isn't supported
+                                }
+                              break;
+
+                            case USB_GET_INTERFACE:
+                              dg_log ("GET_INTERFACE\r\n");
+                              Ep0Buffer[0] = 0x00;
+                              if (SetupLen >= 1)
+                                len = 1;
+                              break;
+
+                            case USB_GET_STATUS:
+                              dg_log ("GET_STATUS\r\n");
+                              Ep0Buffer[0] = 0x00;
+                              Ep0Buffer[1] = 0x00;
+                              if (SetupLen >= 2)
+                                len = 2;
+                              else
+                                len = SetupLen;
+                              break;
+
+                            default:
+                              len = 0xff;                                       // The operation failed
+                              break;
                           }
+                      }
+                    /* Class requests */
+                    else if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_CLASS)
+                      {
+                        /* The host is downloaded */
+                        if (data_dir == USB_REQ_TYP_OUT)
+                          {
+                            switch (SetupReqCode)  // Request code
+                              {
+                                case DEF_SET_LINE_CODING: /* SET_LINE_CODING */
+                                  {
+                                    uint8_t i;
+                                    dg_log ("SET_LINE_CODING\r\n");
+                                    for (i = 0; i < 8; i++)
+                                      {
+                                        dg_log ("%02x ", Ep0Buffer[i]);
+                                      }
+                                    dg_log ("\r\n");
+                                    if (Ep0Buffer[ 4 ] == 0x00)
+                                      {
+                                        CDCSetSerIdx = 0;
+                                        len = 0x00;
+                                      }
+                                    else if (Ep0Buffer[ 4 ] == 0x02)
+                                     {
+                                       CDCSetSerIdx = 1;
+                                       len = 0x00;
+                                     }
+                                    else
+                                      {
+                                        len = 0xff;
+                                      }
+                                  }
+                                  break;
 
-                          pDescr = ep0_send_buf;
-                          len = ep0_send_buf[0];
+                                case DEF_SET_CONTROL_LINE_STATE:  /* SET_CONTROL_LINE_STATE */
+                                  {
+                                    uint8_t  carrier_sta;
+                                    uint8_t  present_sta;
+                                    /* Line status */
+                                    dg_log ("ctl %02x %02x\r\n", Ep0Buffer[2], Ep0Buffer[3]);
+                                    carrier_sta = Ep0Buffer[2] & (1<<1);   // RTS status
+                                    present_sta = Ep0Buffer[2] & (1<<0);   // DTR status
+                                    len = 0;
+                                  }
+                                  break;
 
-                          break;
+                                default:
+                                  dg_log ("CDC ReqCode%x\r\n", SetupReqCode);
+                                  len = 0xff;                                       // The operation failed
+                                  break;
+                              }
+                          }
+                        /* Device upload */
+                        else
+                          {
+                            switch (SetupReqCode)  // Request code
+                              {
+                                case DEF_GET_LINE_CODING: /* GET_LINE_CODING */
+                                  dg_log ("GET_LINE_CODING:%d\r\n", Ep0Buffer[ 4 ]);
+                                  pDescr = Ep0Buffer;
+                                  len = sizeof (LINE_CODE);
+                                  ((PLINE_CODE) Ep0Buffer)->BaudRate   = Uart0Para.BaudRate;
+                                  ((PLINE_CODE) Ep0Buffer)->StopBits   = Uart0Para.StopBits;
+                                  ((PLINE_CODE) Ep0Buffer)->ParityType = Uart0Para.ParityType;
+                                  ((PLINE_CODE) Ep0Buffer)->DataBits   = Uart0Para.DataBits;
+                                  break;
+
+                                case DEF_SERIAL_STATE:
+                                  dg_log ("GET_SERIAL_STATE:%d\r\n", Ep0Buffer[ 4 ]);
+                                  // SetupLen determines the overall length
+                                  len = 2;
+                                  CDCSetSerIdx = 0;
+                                  Ep0Buffer[0] = 0;
+                                  Ep0Buffer[1] = 0;
+                                  break;
+
+                                default:
+                                  dg_log ("CDC ReqCode%x\r\n", SetupReqCode);
+                                  len = 0xff;                                       // The operation failed
+                                  break;
+                              }
+                          }
+                      }
+
+                    else len = 0xff;   /* fail */
+                  }
+                else
+                  {
+                    len = 0xff; // The length of the SETUP package is incorrect
+                  }
+
+                if (len == 0xff)  // The operation failed
+                  {
+                    SetupReqCode = 0xff;
+                    PFIC_DisableIRQ (USB_IRQn);
+                    R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_STALL | UEP_T_RES_STALL;  // STALL
+                    PFIC_EnableIRQ (USB_IRQn);
+                  }
+                else if (len <= THIS_ENDP0_SIZE)  // A packet of 0 length is returned in the upload or status phase
+                  {
+                    if (SetupReqCode ==  USB_SET_ADDRESS)  // Set the address 0x05
+                      {
+////                      dg_log ("add in:%d\r\n", len);
+                        PFIC_DisableIRQ (USB_IRQn);
+                        R8_UEP0_T_LEN = len;
+                        R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
+                        PFIC_EnableIRQ (USB_IRQn);
+                      }
+                    else if (SetupReqCode ==  USB_SET_CONFIGURATION)  // Set the configuration value 0x09
+                      {
+                        PFIC_DisableIRQ (USB_IRQn);
+                        R8_UEP0_T_LEN = len;
+                        R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
+                        PFIC_EnableIRQ (USB_IRQn);
+                      }
+                    else if (SetupReqCode ==  USB_GET_DESCRIPTOR)  // Get the descriptor 0x06
+                      {
+                        R8_UEP0_T_LEN = len;
+                        PFIC_DisableIRQ (USB_IRQn);
+                        R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;  // The default packet is DATA1
+                        PFIC_EnableIRQ (USB_IRQn);
+                      }
+                    else if (SetupReqCode ==  DEF_SET_CONTROL_LINE_STATE)  // 0x22
+                      {
+                        PFIC_DisableIRQ (USB_IRQn);
+                        R8_UEP0_T_LEN = len;
+                        R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
+                        PFIC_EnableIRQ (USB_IRQn);
+                      }
+                    else if (SetupReqCode ==  USB_CLEAR_FEATURE)  // 0x01
+                      {
+                        PFIC_DisableIRQ (USB_IRQn);
+                        R8_UEP0_T_LEN = len;
+                        R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
+                        PFIC_EnableIRQ (USB_IRQn);
+                      }
+                    else
+                      {
+                        if (data_dir == USB_REQ_TYP_IN)   // Upload is currently required
+                          {
+                            PFIC_DisableIRQ (USB_IRQn);
+                            R8_UEP0_T_LEN = len;
+                            R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
+                            PFIC_EnableIRQ (USB_IRQn);
+                          }
+                        else                            // Downloading is currently required
+                          {
+                            PFIC_DisableIRQ (USB_IRQn);
+                            R8_UEP0_T_LEN = len;
+                            R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_NAK;  // The default packet is DATA1
+                            PFIC_EnableIRQ (USB_IRQn);
+                          }
+                      }
+                }
+              else  // Downloading data or others
+                {
+                  // Although it has not yet reached the state stage, it is necessary to preset and upload 0-length packets in advance to prevent the host from entering the state phase in advance
+                  R8_UEP0_T_LEN = 0;
+                  PFIC_DisableIRQ (USB_IRQn);
+                  R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;  // The default packet is DATA1
+                  PFIC_EnableIRQ (USB_IRQn);
+                }
+                break;
+
+              case UIS_TOKEN_IN | 0:      // endpoint #0 IN  UIS_TOKEN_IN
+                switch (SetupReqCode)
+                  {
+                    /* Simple handling of SETUP commands */
+                    case USB_GET_DESCRIPTOR:  // 0x06 Get a descriptor
+                      len = (SetupLen >= THIS_ENDP0_SIZE) ? THIS_ENDP0_SIZE : SetupLen;  // The length of this transfer
+                      memcpy (Ep0Buffer, pDescr, len);                    /* Load the feed */
+                      SetupLen -= len;
+                      pDescr += len;
+
+                      if (len)
+                        {
+                          R8_UEP0_T_LEN = len;
+                          PFIC_DisableIRQ (USB_IRQn);
+                          R8_UEP0_CTRL ^=  RB_UEP_T_TOG;
+                          USBDevEPnINSetStatus (ENDP0, ENDP_TYPE_IN, IN_ACK);
+                          PFIC_EnableIRQ (USB_IRQn);
                         }
+                      else
+                        {
+                          R8_UEP0_T_LEN = len;
+                          PFIC_DisableIRQ (USB_IRQn);
+                          R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_ACK | UEP_T_RES_NAK;
+                          PFIC_EnableIRQ (USB_IRQn);
+                        }
+                      break;
+
+                    case USB_SET_ADDRESS:   // 0x05
+                      R8_USB_DEV_AD = (R8_USB_DEV_AD & RB_UDA_GP_BIT) | (devinf.UsbAddress);
+                      PFIC_DisableIRQ (USB_IRQn);
+                      R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
+                      PFIC_EnableIRQ (USB_IRQn);
+////                    dg_log ("add in deal\r\n");
+
+                      break;
+
+                    case DEF_GET_LINE_CODING:  // 0x21
+                      PFIC_DisableIRQ (USB_IRQn);
+                      R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_ACK | UEP_T_RES_NAK;
+                      PFIC_EnableIRQ (USB_IRQn);
+
+                      break;
+
+                    case DEF_SET_LINE_CODING:   // 0x20
+                      PFIC_DisableIRQ (USB_IRQn);
+                      R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
+                      PFIC_EnableIRQ (USB_IRQn);
+                      break;
+
+                    default:
+                      R8_UEP0_T_LEN = 0; // The state phase completes an interrupt or forces the upload of 0-length packets to end the control transmission
+                      PFIC_DisableIRQ (USB_IRQn);
+                      R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
+                      PFIC_EnableIRQ (USB_IRQn);
+
+                      break;
+                  }
+
+                break;
+
+              case UIS_TOKEN_OUT | 0:  // endpoint #0 OUT
+                len = usb_irq_len[i];
+                if (len)
+                  {
+                    switch (SetupReqCode)
+                      {
+                        /* Set the serial port */
+                        case DEF_SET_LINE_CODING:
+                          {
+                            uint32_t set_bps;
+                            uint8_t  data_bit;
+                            uint8_t  stop_bit;
+                            uint8_t  ver_bit;
+
+                            memcpy (&set_bps, Ep0Buffer, 4);
+                            stop_bit = Ep0Buffer[4];
+                            ver_bit = Ep0Buffer[5];
+                            data_bit = Ep0Buffer[6];
+
+                            dg_log ("LINE_CODING %d %d %d %d %d\r\n", CDCSetSerIdx
+                                                 , (int) set_bps
+                                                 , data_bit
+                                                 , stop_bit
+                                                 , ver_bit);
+
+                            Uart0Para.BaudRate = set_bps;
+                            Uart0Para.StopBits = stop_bit;
+                            Uart0Para.ParityType = ver_bit;
+                            Uart0Para.DataBits = data_bit;
+                            CDCSer0ParaChange = 1;
+
+                            PFIC_DisableIRQ (USB_IRQn);
+                            R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK|UEP_T_RES_ACK;
+                            PFIC_EnableIRQ (USB_IRQn);
+                          }
+                          break;
+
                         default:
-                          len = 0xff;    // Unsupported descriptor types
+                          PFIC_DisableIRQ (USB_IRQn);
+                          R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
+                          PFIC_EnableIRQ (USB_IRQn);
                           break;
                       }
-                      break;
-                    }
-                    case 6:  // Device Qualified Descriptor
-                    {
-                      pDescr = (uint8_t *) (&My_QueDescr[0]);
-                      len = sizeof (My_QueDescr);
-                      break;
-                    }
-                    default:
-                      len = 0xff;                                  // Unsupported descriptor types
-                      break;
                   }
-                  if (SetupLen > len) SetupLen = len;            // Limit the overall length
-                  len = (SetupLen >= THIS_ENDP0_SIZE) ? THIS_ENDP0_SIZE : SetupLen;  // The length of this transfer
-                  memcpy (Ep0Buffer, pDescr, len);                 /* Load the feed */
-                  SetupLen -= len;
-                  pDescr += len;
-
-                  break;
-                }
-                case USB_SET_ADDRESS:  // Set the address
-                {
-                  dg_log ("SET_ADDRESS:%d\r\n", UsbSetupBuf->wValueL);
-                  devinf.gUsbFlag |= DEF_BIT_USB_ADDRESS;
-                  devinf.UsbAddress = UsbSetupBuf->wValueL;    // Staging USB device addresses
-
-                  break;
-                }
-                case USB_GET_CONFIGURATION:
-                {
-                  dg_log ("GET_CONFIGURATION\r\n");
-                  Ep0Buffer[0] = devinf.UsbConfig;
-                  if (SetupLen >= 1) len = 1;
-
-                  break;
-                }
-                case USB_SET_CONFIGURATION:
-                {
-                  dg_log ("SET_CONFIGURATION\r\n");
-                  devinf.gUsbFlag |= DEF_BIT_USB_SET_CFG;
-                  devinf.UsbConfig = UsbSetupBuf->wValueL;
-                  break;
-                }
-                case USB_CLEAR_FEATURE:
-                {
-                  dg_log ("CLEAR_FEATURE\r\n");
-                  len = 0;
-                  /* Clear the device */
-                  if ((UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_DEVICE)
+                else
                   {
-                    R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
-                    R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
-                    R8_UEP3_CTRL = (R8_UEP3_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
-                    R8_UEP4_CTRL = (R8_UEP4_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK;
-
-                    // The state variable is reset
-                    Ep1DataINFlag = 1;
-                    Ep2DataINFlag = 1;
-                    Ep3DataINFlag = 1;
-                    Ep4DataINFlag = 1;
-
-                    Ep1DataOUTFlag = 0;
-                    Ep2DataOUTFlag = 0;
-                    Ep3DataOUTFlag = 0;
-                    Ep4DataOUTFlag = 0;
+                    PFIC_DisableIRQ (USB_IRQn);
+                    R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK|UEP_T_RES_NAK;
+                    PFIC_EnableIRQ (USB_IRQn);
                   }
-                  else if ((UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_ENDP)  // endpoint
-                  {
-                    switch (UsbSetupBuf->wIndexL)   // Judgment endpoint
-                    {
-                      case 0x84: R8_UEP4_CTRL = (R8_UEP4_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
-                      case 0x04: R8_UEP4_CTRL = (R8_UEP4_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
-                      case 0x83: R8_UEP3_CTRL = (R8_UEP3_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
-                      case 0x03: R8_UEP3_CTRL = (R8_UEP3_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
-                      case 0x82: R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
-                      case 0x02: R8_UEP2_CTRL = (R8_UEP2_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
-                      case 0x81: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_T_TOG | MASK_UEP_T_RES))) | UEP_T_RES_NAK; break;
-                      case 0x01: R8_UEP1_CTRL = (R8_UEP1_CTRL & (~(RB_UEP_R_TOG | MASK_UEP_R_RES))) | UEP_R_RES_ACK; break;
-                      default: len = 0xff;  break;
-                    }
-                  }
-                  else len = 0xff;                                  // It's not that the endpoint isn't supported
-
-                  break;
-                }
-                case USB_GET_INTERFACE:
-                {
-                  dg_log ("GET_INTERFACE\r\n");
-                  Ep0Buffer[0] = 0x00;
-                  if (SetupLen >= 1) len = 1;
-                  break;
-                }
-                case USB_GET_STATUS:
-                {
-                  dg_log ("GET_STATUS\r\n");
-                  Ep0Buffer[0] = 0x00;
-                  Ep0Buffer[1] = 0x00;
-                  if (SetupLen >= 2) len = 2;
-                  else len = SetupLen;
-                  break;
-                }
-                default:
-                  len = 0xff;                                       // The operation failed
-                  break;
-              }
-            }
-            /* Class requests */
-            else if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_CLASS)
-            {
-              /* The host is downloaded */
-              if (data_dir == USB_REQ_TYP_OUT)
-              {
-                switch (SetupReqCode)  // Request code
-                {
-                  case DEF_SET_LINE_CODING: /* SET_LINE_CODING */
-                  {
-                    uint8_t i;
-                    dg_log ("SET_LINE_CODING\r\n");
-                    for (i = 0; i < 8; i++)
-                    {
-                      dg_log ("%02x ", Ep0Buffer[i]);
-                    }
-                    dg_log ("\r\n");
-                    if (Ep0Buffer[ 4 ] == 0x00)
-                    {
-                      CDCSetSerIdx = 0;
-                      len = 0x00;
-                    }
-                    else if (Ep0Buffer[ 4 ] == 0x02)
-                    {
-                      CDCSetSerIdx = 1;
-                      len = 0x00;
-                    }
-                    else len = 0xff;
-                    break;
-                  }
-                  case DEF_SET_CONTROL_LINE_STATE:  /* SET_CONTROL_LINE_STATE */
-                  {
-                    uint8_t  carrier_sta;
-                    uint8_t  present_sta;
-                    /* Line status */
-                    dg_log ("ctl %02x %02x\r\n", Ep0Buffer[2], Ep0Buffer[3]);
-                    carrier_sta = Ep0Buffer[2] & (1<<1);   // RTS status
-                    present_sta = Ep0Buffer[2] & (1<<0);   // DTR status
-                    len = 0;
-                    break;
-                  }
-                  default:
-                  {
-                    dg_log ("CDC ReqCode%x\r\n", SetupReqCode);
-                    len = 0xff;                                       // The operation failed
-                    break;
-                  }
-                }
-              }
-              /* Device upload */
-              else
-              {
-                switch (SetupReqCode)  // Request code
-                {
-                  case DEF_GET_LINE_CODING: /* GET_LINE_CODING */
-                  {
-                    dg_log ("GET_LINE_CODING:%d\r\n", Ep0Buffer[ 4 ]);
-                    pDescr = Ep0Buffer;
-                    len = sizeof (LINE_CODE);
-                    ((PLINE_CODE) Ep0Buffer)->BaudRate   = Uart0Para.BaudRate;
-                    ((PLINE_CODE) Ep0Buffer)->StopBits   = Uart0Para.StopBits;
-                    ((PLINE_CODE) Ep0Buffer)->ParityType = Uart0Para.ParityType;
-                    ((PLINE_CODE) Ep0Buffer)->DataBits   = Uart0Para.DataBits;
-                    break;
-                  }
-                  case DEF_SERIAL_STATE:
-                  {
-                    dg_log ("GET_SERIAL_STATE:%d\r\n", Ep0Buffer[ 4 ]);
-                    // SetupLen determines the overall length
-                    len = 2;
-                    CDCSetSerIdx = 0;
-                    Ep0Buffer[0] = 0;
-                    Ep0Buffer[1] = 0;
-                    break;
-                  }
-                  default:
-                  {
-                    dg_log ("CDC ReqCode%x\r\n", SetupReqCode);
-                    len = 0xff;                                       // The operation failed
-                    break;
-                  }
-                }
-              }
-            }
-
-            else len = 0xff;   /* fail */
-          }
-          else
-          {
-            len = 0xff; // The length of the SETUP package is incorrect
-          }
-          if (len == 0xff)  // The operation failed
-          {
-            SetupReqCode = 0xff;
-            PFIC_DisableIRQ (USB_IRQn);
-            R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_STALL | UEP_T_RES_STALL;  // STALL
-            PFIC_EnableIRQ (USB_IRQn);
-          }
-          else if (len <= THIS_ENDP0_SIZE)  // A packet of 0 length is returned in the upload or status phase
-          {
-            if (SetupReqCode ==  USB_SET_ADDRESS)  // Set the address 0x05
-            {
-//              dg_log ("add in:%d\r\n", len);
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_T_LEN = len;
-              R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ (USB_IRQn);
-            }
-            else if (SetupReqCode ==  USB_SET_CONFIGURATION)  // Set the configuration value 0x09
-            {
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_T_LEN = len;
-              R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ (USB_IRQn);
-            }
-            else if (SetupReqCode ==  USB_GET_DESCRIPTOR)  // Get the descriptor 0x06
-            {
-              R8_UEP0_T_LEN = len;
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ (USB_IRQn);
-            }
-            else if (SetupReqCode ==  DEF_SET_CONTROL_LINE_STATE)  // 0x22
-            {
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_T_LEN = len;
-              R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ (USB_IRQn);
-            }
-            else if (SetupReqCode ==  USB_CLEAR_FEATURE)  // 0x01
-            {
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_T_LEN = len;
-              R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ (USB_IRQn);
-            }
-            else
-            {
-              if (data_dir == USB_REQ_TYP_IN)   // Upload is currently required
-              {
-                PFIC_DisableIRQ (USB_IRQn);
-                R8_UEP0_T_LEN = len;
-                R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-                PFIC_EnableIRQ (USB_IRQn);
-              }
-              else                            // Downloading is currently required
-              {
-                PFIC_DisableIRQ (USB_IRQn);
-                R8_UEP0_T_LEN = len;
-                R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_NAK;  // The default packet is DATA1
-                PFIC_EnableIRQ (USB_IRQn);
-              }
-            }
-          }
-          else  // Downloading data or others
-          {
-            // Although it has not yet reached the state stage, it is necessary to preset and upload 0-length packets in advance to prevent the host from entering the state phase in advance
-            R8_UEP0_T_LEN = 0;
-            PFIC_DisableIRQ (USB_IRQn);
-            R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;  // The default packet is DATA1
-            PFIC_EnableIRQ (USB_IRQn);
-          }
-          break;
-        }
-        case UIS_TOKEN_IN | 0:      // endpoint #0 IN  UIS_TOKEN_IN
-        {
-          switch (SetupReqCode)
-          {
-            /* Simple handling of SETUP commands */
-            case USB_GET_DESCRIPTOR:  // 0x06 Get a descriptor
-            {
-              len = (SetupLen >= THIS_ENDP0_SIZE) ? THIS_ENDP0_SIZE : SetupLen;  // The length of this transfer
-              memcpy (Ep0Buffer, pDescr, len);                    /* Load the feed */
-              SetupLen -= len;
-              pDescr += len;
-
-              if (len)
-              {
-                R8_UEP0_T_LEN = len;
-                PFIC_DisableIRQ (USB_IRQn);
-                R8_UEP0_CTRL ^=  RB_UEP_T_TOG;
-                USBDevEPnINSetStatus (ENDP0, ENDP_TYPE_IN, IN_ACK);
-                PFIC_EnableIRQ (USB_IRQn);
-              }
-              else
-              {
-                R8_UEP0_T_LEN = len;
-                PFIC_DisableIRQ (USB_IRQn);
-                R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_ACK | UEP_T_RES_NAK;
-                PFIC_EnableIRQ (USB_IRQn);
-              }
-              break;
-            }
-            case USB_SET_ADDRESS:   // 0x05
-            {
-              R8_USB_DEV_AD = (R8_USB_DEV_AD & RB_UDA_GP_BIT) | (devinf.UsbAddress);
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ (USB_IRQn);
-//              dg_log ("add in deal\r\n");
-
-              break;
-            }
-            case DEF_GET_LINE_CODING:  // 0x21
-            {
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_ACK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ (USB_IRQn);
-
-              break;
-            }
-            case DEF_SET_LINE_CODING:   // 0x20
-            {
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ (USB_IRQn);
-              break;
-            }
-            default:
-            {
-              R8_UEP0_T_LEN = 0; // The state phase completes an interrupt or forces the upload of 0-length packets to end the control transmission
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ (USB_IRQn);
-
-              break;
-            }
-          }
-          break;
-        }
-        case UIS_TOKEN_OUT | 0:  // endpoint #0 OUT
-        {
-          len = usb_irq_len[i];
-          if (len)
-          {
-            switch (SetupReqCode)
-            {
-              /* Set the serial port */
-              case DEF_SET_LINE_CODING:
-              {
-                uint32_t set_bps;
-                uint8_t  data_bit;
-                uint8_t  stop_bit;
-                uint8_t  ver_bit;
-
-                memcpy (&set_bps, Ep0Buffer, 4);
-                stop_bit = Ep0Buffer[4];
-                ver_bit = Ep0Buffer[5];
-                data_bit = Ep0Buffer[6];
-
-                dg_log ("LINE_CODING %d %d %d %d %d\r\n", CDCSetSerIdx
-                                     , (int) set_bps
-                                     , data_bit
-                                     , stop_bit
-                                     , ver_bit);
-
-                Uart0Para.BaudRate = set_bps;
-                Uart0Para.StopBits = stop_bit;
-                Uart0Para.ParityType = ver_bit;
-                Uart0Para.DataBits = data_bit;
-                CDCSer0ParaChange = 1;
-
-                PFIC_DisableIRQ (USB_IRQn);
-                R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK|UEP_T_RES_ACK;
-                PFIC_EnableIRQ (USB_IRQn);
                 break;
-              }
+
               default:
-                PFIC_DisableIRQ (USB_IRQn);
-                R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
-                PFIC_EnableIRQ (USB_IRQn);
                 break;
             }
-          }
-          else
-          {
-            PFIC_DisableIRQ (USB_IRQn);
-            R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK|UEP_T_RES_NAK;
-            PFIC_EnableIRQ (USB_IRQn);
-          }
-          break;
-        }
-        default:
-          break;
-      }
 
-      PFIC_DisableIRQ (USB_IRQn);
-      usb_irq_flag[i] = 0;
-      PFIC_EnableIRQ (USB_IRQn);
+          PFIC_DisableIRQ (USB_IRQn);
+          usb_irq_flag[i] = 0;
+          PFIC_EnableIRQ (USB_IRQn);
+        }
     }
-  }
 
   if (R8_USB_INT_FG & RB_UIF_BUS_RST)  // USB bus reset
     {
