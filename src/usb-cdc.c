@@ -85,11 +85,11 @@ typedef struct DevInfo
   uint8_t gSetupLen;      // USB controls the transmission length
   uint8_t gUsbInterCfg;   // USB device interface configuration
   uint8_t gUsbFlag;       // Various operating flags for USB devices,
-                        //     bit 0 = bus reset,
-                        //     bit 1 = get device descriptor,
-                        //     bit 2 = set address,
-                        //     bit 3 = get configuration descriptor,
-                        //     bit 4 = set configuration
+                          //     bit 0 = bus reset,
+                          //     bit 1 = get device descriptor,
+                          //     bit 2 = set address,
+                          //     bit 3 = get configuration descriptor,
+                          //     bit 4 = set configuration
 } DevInfo_Parm;
 
 /* Device information */
@@ -423,77 +423,98 @@ void USB_IRQHandler (void)
   uint8_t   i;
   uint8_t   j;
 
-  if (R8_USB_INT_FG & RB_UIF_TRANSFER)
-  {
-    /* Except for the setup package processing */
-    if ((R8_USB_INT_ST & MASK_UIS_TOKEN) != MASK_UIS_TOKEN) {     // Non-idle
-      /* Write directly */
-      usb_irq_flag[usb_irq_w_idx] = 1;
-      usb_irq_pid[usb_irq_w_idx]  = R8_USB_INT_ST;  // & 0x3f;// (0x30 | 0x0f);
-      usb_irq_len[usb_irq_w_idx]  = R8_USB_RX_LEN;
+  if (R8_USB_INT_FG & RB_UIF_TRANSFER)   // transmission complete
+    {
+      /* Except for the setup package processing */
+      if ((R8_USB_INT_ST & MASK_UIS_TOKEN) != MASK_UIS_TOKEN)     // Non-idle
+        {
+          /* Write directly */
+          usb_irq_flag[usb_irq_w_idx] = 1;
+          usb_irq_pid[usb_irq_w_idx]  = R8_USB_INT_ST;  // & 0x3f;// (0x30 | 0x0f);
+          usb_irq_len[usb_irq_w_idx]  = R8_USB_RX_LEN;
 
-      switch (usb_irq_pid[usb_irq_w_idx]& 0x3f) {   // Analyze the current endpoint
-        case UIS_TOKEN_OUT | 2:{
-          if (R8_USB_INT_FG & RB_U_TOG_OK) {   // Out-of-sync packets are dropped
-            R8_UEP2_CTRL ^=  RB_UEP_R_TOG;
-            R8_UEP2_CTRL = (R8_UEP2_CTRL & 0xf3) | 0x08; // OUT_NAK
-            /* Save the data */
-            for (j = 0; j < (MAX_PACKET_SIZE/4); j++)
-              ((uint32_t *) Ep2OUTDataBuf)[j] = ((uint32_t *) Ep2Buffer)[j];
-          }
-          else usb_irq_flag[usb_irq_w_idx] = 0;
-        }break;
-        case UIS_TOKEN_IN | 2:{ // endpoint 2# Bulk endpoint upload completed
-          R8_UEP2_CTRL ^=  RB_UEP_T_TOG;
-          R8_UEP2_CTRL = (R8_UEP2_CTRL & 0xfc) | IN_NAK; // IN_NAK
-        }break;
-        case UIS_TOKEN_OUT | 1:{
-          if (R8_USB_INT_FG & RB_U_TOG_OK) {   // Out-of-sync packets are dropped
-            R8_UEP1_CTRL ^=  RB_UEP_R_TOG;
-            R8_UEP1_CTRL = (R8_UEP1_CTRL & 0xf3) | 0x08; // OUT_NAK
-            /* Save the data */
-            for (j = 0; j < (MAX_PACKET_SIZE/4); j++)
-              ((uint32_t *) Ep1OUTDataBuf)[j] = ((uint32_t *) Ep1Buffer)[j];
-          }
-          else usb_irq_flag[usb_irq_w_idx] = 0;
-        }break;
-        case UIS_TOKEN_IN | 1:{  // endpoint 1# Batch endpoint upload completed
-          R8_UEP1_CTRL ^=  RB_UEP_T_TOG;
-          R8_UEP1_CTRL = (R8_UEP1_CTRL & 0xfc) | IN_NAK; // IN_NAK
-        }break;
-        case UIS_TOKEN_OUT | 0:{    // endpoint 0
-          if (R8_USB_INT_FG & RB_U_TOG_OK)   // Out-of-sync packets are dropped
-            R8_UEP0_CTRL = (R8_UEP0_CTRL & 0xf3) | 0x08; // OUT_NAK
-          else usb_irq_flag[usb_irq_w_idx] = 0;
-        }break;
-        case UIS_TOKEN_IN | 0:{  // endpoint 0
-          R8_UEP0_CTRL = (R8_UEP0_CTRL & 0xfc) | IN_NAK; // IN_NAK
-        }break;
-      }
+          switch (usb_irq_pid[usb_irq_w_idx] & 0x3f)    // Analyze the current endpoint
+            {
+              case (UIS_TOKEN_OUT | 2):
+                if (R8_USB_INT_FG & RB_U_TOG_OK)
+                  {
+                    R8_UEP2_CTRL ^= RB_UEP_R_TOG;
+                    R8_UEP2_CTRL = (R8_UEP2_CTRL & 0xf3) | 0x08; // OUT_NAK
+                    /* Save the data */
+                    for (j = 0; j < (MAX_PACKET_SIZE/4); j++)
+                      ((uint32_t *) Ep2OUTDataBuf)[j] = ((uint32_t *) Ep2Buffer)[j];
+                  }
+                else  // Out-of-sync packets are dropped
+                  {
+                    usb_irq_flag[usb_irq_w_idx] = 0;
+                  }
+                break;
 
-      /* Switch to the next write address */
-      if (usb_irq_flag[usb_irq_w_idx]) {
-        usb_irq_w_idx++;
-        if (usb_irq_w_idx >= USB_IRQ_FLAG_NUM) usb_irq_w_idx = 0;
-      }
+              case (UIS_TOKEN_IN | 2):   // endpoint #2 Bulk endpoint upload completed
+                R8_UEP2_CTRL ^=  RB_UEP_T_TOG;
+                R8_UEP2_CTRL = (R8_UEP2_CTRL & 0xfc) | IN_NAK; // IN_NAK
+                break;
 
-      R8_USB_INT_FG = RB_UIF_TRANSFER;
+              case (UIS_TOKEN_OUT | 1):
+                if (R8_USB_INT_FG & RB_U_TOG_OK)
+                  {
+                    R8_UEP1_CTRL ^=  RB_UEP_R_TOG;
+                    R8_UEP1_CTRL = (R8_UEP1_CTRL & 0xf3) | 0x08; // OUT_NAK
+                    /* Save the data */
+                    for (j = 0; j < (MAX_PACKET_SIZE/4); j++)
+                      ((uint32_t *) Ep1OUTDataBuf)[j] = ((uint32_t *) Ep1Buffer)[j];
+                  }
+                // Out-of-sync packets are dropped
+                else
+                  {
+                    usb_irq_flag[usb_irq_w_idx] = 0;
+                  }
+                break;
+
+              case (UIS_TOKEN_IN | 1):  // endpoint #1 Batch endpoint upload completed
+                R8_UEP1_CTRL ^=  RB_UEP_T_TOG;
+                R8_UEP1_CTRL = (R8_UEP1_CTRL & 0xfc) | IN_NAK; // IN_NAK
+                break;
+
+              case (UIS_TOKEN_OUT | 0):    // endpoint 0
+                if (R8_USB_INT_FG & RB_U_TOG_OK)   // Out-of-sync packets are dropped
+                  R8_UEP0_CTRL = (R8_UEP0_CTRL & 0xf3) | 0x08; // OUT_NAK
+                else
+                  usb_irq_flag[usb_irq_w_idx] = 0;
+                break;
+
+              case (UIS_TOKEN_IN | 0):  // endpoint 0
+                R8_UEP0_CTRL = (R8_UEP0_CTRL & 0xfc) | IN_NAK; // IN_NAK
+                break;
+            }
+
+          /* Switch to the next write address */
+          if (usb_irq_flag[usb_irq_w_idx])
+            {
+              usb_irq_w_idx++;
+              if (usb_irq_w_idx >= USB_IRQ_FLAG_NUM)
+                usb_irq_w_idx = 0;
+            }
+
+          // clear transfer interrupt flag
+          R8_USB_INT_FG = RB_UIF_TRANSFER;
+        }
+
+      /* setup package processing */
+      if (R8_USB_INT_ST & RB_UIS_SETUP_ACT)
+        {
+          /* Convergence with the previous process - UIS_TOKEN_SETUP */
+          /* Write directly */
+          usb_irq_flag[usb_irq_w_idx] = 1;
+          usb_irq_pid[usb_irq_w_idx]  = UIS_TOKEN_SETUP | 0;  // Keep the previous logo
+          usb_irq_len[usb_irq_w_idx]  = 8;
+          /* Switch to the next write address */
+          usb_irq_w_idx++;
+          if (usb_irq_w_idx >= USB_IRQ_FLAG_NUM) usb_irq_w_idx = 0;
+
+          R8_USB_INT_FG = RB_UIF_TRANSFER;
+        }
     }
-
-    /* setup package processing */
-    if (R8_USB_INT_ST & RB_UIS_SETUP_ACT) {
-      /* Convergence with the previous process - UIS_TOKEN_SETUP */
-      /* Write directly */
-      usb_irq_flag[usb_irq_w_idx] = 1;
-      usb_irq_pid[usb_irq_w_idx]  = UIS_TOKEN_SETUP | 0;  // Keep the previous logo
-      usb_irq_len[usb_irq_w_idx]  = 8;
-      /* Switch to the next write address */
-      usb_irq_w_idx++;
-      if (usb_irq_w_idx >= USB_IRQ_FLAG_NUM) usb_irq_w_idx = 0;
-
-      R8_USB_INT_FG = RB_UIF_TRANSFER;
-    }
-  }
 }
 
 
@@ -557,17 +578,17 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
 
       switch (usb_irq_pid[i] & 0x3f)   // Analyze the action token and endpoint number
       {
-        case UIS_TOKEN_IN | 4:  // endpoint 4# Batch endpoint upload completed
+        case UIS_TOKEN_IN | 4:  // endpoint #4 Batch endpoint upload completed
         {
           Ep4DataINFlag = ~0;
           break;
         }
-        case UIS_TOKEN_IN | 3:  // endpoint 3# The bulk endpoint upload is complete
+        case UIS_TOKEN_IN | 3:  // endpoint #3 The bulk endpoint upload is complete
         {
           Ep3DataINFlag = ~0;
           break;
         }
-        case UIS_TOKEN_OUT | 2:    // endpoint 2# The batch endpoint upload is complete
+        case UIS_TOKEN_OUT | 2:    // endpoint #2 The batch endpoint upload is complete
         {
           dg_log ("usb_rec\n");
           len = usb_irq_len[i];
@@ -587,12 +608,12 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
           }
           break;
         }
-        case UIS_TOKEN_IN | 2:  // endpoint 2# Bulk endpoint upload completed
+        case UIS_TOKEN_IN | 2:  // endpoint #2 Bulk endpoint upload completed
         {
           Ep2DataINFlag = 1;
           break;
         }
-        case UIS_TOKEN_OUT | 1:    // endpoint 1# Batch endpoint upload is complete
+        case UIS_TOKEN_OUT | 1:    // endpoint #1 Batch endpoint upload is complete
         {
           dg_log ("usb_rec\n");
           len = usb_irq_len[i];
@@ -610,12 +631,12 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
           PFIC_EnableIRQ (USB_IRQn);
           break;
         }
-        case UIS_TOKEN_IN | 1:   // endpoint 1# Interrupt the endpoint upload is complete
+        case UIS_TOKEN_IN | 1:   // endpoint #1 Interrupt the endpoint upload is complete
         {
           Ep1DataINFlag = 1;
           break;
         }
-        case UIS_TOKEN_SETUP | 0:    // endpoint 0# SETUP
+        case UIS_TOKEN_SETUP | 0:    // endpoint #0 SETUP
         {
           len = usb_irq_len[i];
           if (len == sizeof (USB_SETUP_REQ))
@@ -1333,7 +1354,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
           }
           break;
         }
-        case UIS_TOKEN_IN | 0:      // endpoint 0# IN  UIS_TOKEN_IN
+        case UIS_TOKEN_IN | 0:      // endpoint #0 IN  UIS_TOKEN_IN
         {
           switch (SetupReqCode)
           {
@@ -1409,7 +1430,7 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
           }
           break;
         }
-        case UIS_TOKEN_OUT | 0:  // endpoint 0# OUT
+        case UIS_TOKEN_OUT | 0:  // endpoint #0 OUT
         {
           len = usb_irq_len[i];
           if (len)
@@ -1541,8 +1562,11 @@ void USBDevEPnINSetStatus (uint8_t ep_num, uint8_t type, uint8_t sta)
   uint8_t *p_UEPn_CTRL;
 
   p_UEPn_CTRL = (uint8_t *) (USB_BASE_ADDR + 0x22 + ep_num * 4);
-  if (type == ENDP_TYPE_IN) *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03))) | sta;
-  else *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03<<2))) | (sta<<2);
+
+  if (type == ENDP_TYPE_IN)
+    *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03))) | sta;
+  else
+    *((PUINT8V) p_UEPn_CTRL) = (*((PUINT8V) p_UEPn_CTRL) & (~(0x03<<2))) | (sta<<2);
 }
 
 

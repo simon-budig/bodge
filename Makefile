@@ -43,6 +43,7 @@ C_SOURCES = \
 	src/main.c
 
 
+
 # ASM sources
 ASM_LIB_SOURCES =  \
 	$(FW_LIB_DIR)/Startup/startup_CH583.S
@@ -149,7 +150,7 @@ program: $(BUILD_DIR)/$(TARGET).elf
 	sudo wch-openocd -f /usr/share/wch-openocd/openocd/scripts/interface/wch-riscv.cfg -c 'init; halt; program $(BUILD_DIR)/$(TARGET).elf; reset; wlink_reset_resume; exit;'
 
 isp: $(BUILD_DIR)/$(TARGET).bin
-	wchisp flash $(BUILD_DIR)/$(TARGET).bin
+	sudo ~/bin/wchisp flash $(BUILD_DIR)/$(TARGET).bin
 
 #######################################
 # clean up
