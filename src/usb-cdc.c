@@ -177,9 +177,6 @@ volatile uint8_t usb_irq_len[USB_IRQ_FLAG_NUM];
 volatile uint8_t usb_irq_pid[USB_IRQ_FLAG_NUM];
 volatile uint8_t usb_irq_flag[USB_IRQ_FLAG_NUM];
 
-uint8_t cdc_uart_sta_trans_step = 0;
-uint8_t ven_ep1_trans_step      = 0;
-
 /* Endpoint 0 enumerates upload frame processing */
 uint8_t ep0_send_buf[256];
 
@@ -248,7 +245,6 @@ __attribute__ ((interrupt ("WCH-Interrupt-fast")))
 __attribute__ ((section (".highcode")))
 void USB_IRQHandler (void)
 {
-  uint8_t   i;
   uint8_t   j;
 
   if (R8_USB_INT_FG & RB_UIF_TRANSFER)   // transmission complete
@@ -377,16 +373,12 @@ uint8_t Ep4DataOUTFlag = 0;
 
 void USB_IRQProcessHandler (void)   /* USB interrupt service program */
 {
-  static  uint8_t *pDescr;
+  static uint8_t *pDescr;
   uint8_t   len;
-  uint32_t  bps;
-  uint8_t   buf[8];
   uint8_t   data_dir = 0;   // Data direction
-  uint8_t   ep_idx, ep_pid;
   uint8_t   i;
-  uint8_t   ep_sta;
 
-  // for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
+  for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
   {
     i = usb_irq_r_idx;
 
@@ -610,9 +602,6 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                     Ep2DataOUTFlag = 0;
                     Ep3DataOUTFlag = 0;
                     Ep4DataOUTFlag = 0;
-
-                    cdc_uart_sta_trans_step = 0;
-                    ven_ep1_trans_step = 0;
                   }
                   else if ((UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_ENDP)  // endpoint
                   {
@@ -898,7 +887,6 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                 uint8_t  data_bit;
                 uint8_t  stop_bit;
                 uint8_t  ver_bit;
-                uint8_t  set_stop_bit;
 
                 memcpy (&set_bps, Ep0Buffer, 4);
                 stop_bit = Ep0Buffer[4];
@@ -911,11 +899,11 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                                      , stop_bit
                                      , ver_bit);
 
-                  Uart0Para.BaudRate = set_bps;
-                  Uart0Para.StopBits = stop_bit;
-                  Uart0Para.ParityType = ver_bit;
-                  Uart0Para.DataBits = data_bit;
-                  CDCSer0ParaChange = 1;
+                Uart0Para.BaudRate = set_bps;
+                Uart0Para.StopBits = stop_bit;
+                Uart0Para.ParityType = ver_bit;
+                Uart0Para.DataBits = data_bit;
+                CDCSer0ParaChange = 1;
 
                 PFIC_DisableIRQ (USB_IRQn);
                 R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK|UEP_T_RES_ACK;
@@ -938,7 +926,6 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
           break;
         }
         default:
-          ep_idx = 0xff;
           break;
       }
 
@@ -949,56 +936,49 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
   }
 
   if (R8_USB_INT_FG & RB_UIF_BUS_RST)  // USB bus reset
-  {
+    {
       R8_UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
       R8_UEP1_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK;
       R8_UEP2_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK;
       R8_UEP3_CTRL = UEP_T_RES_NAK;
       R8_UEP4_CTRL = UEP_T_RES_NAK;
 
-    cdc_uart_sta_trans_step = 0;
-    ven_ep1_trans_step = 0;
+      R8_USB_DEV_AD = 0x00;
+      devinf.UsbAddress = 0;
 
-    R8_USB_DEV_AD = 0x00;
-    devinf.UsbAddress = 0;
-
-    R8_USB_INT_FG = RB_UIF_BUS_RST;             // Clear the break sign
-  }
+      R8_USB_INT_FG = RB_UIF_BUS_RST;       // Clear the break sign
+    }
   else if (R8_USB_INT_FG & RB_UIF_SUSPEND)  // USB bus hang/wake complete
-  {
-    if (R8_USB_MIS_ST & RB_UMS_SUSPEND)    // Suspend
     {
-      CDCSer0ParaChange = 1;
+      if (R8_USB_MIS_ST & RB_UMS_SUSPEND)   // Suspend
+        {
+          CDCSer0ParaChange = 1;
 
-      Ep1DataINFlag = 0;
-      Ep2DataINFlag = 0;
-      Ep3DataINFlag = 0;
-      Ep4DataINFlag = 0;
+          Ep1DataINFlag = 0;
+          Ep2DataINFlag = 0;
+          Ep3DataINFlag = 0;
+          Ep4DataINFlag = 0;
 
-      Ep1DataOUTFlag = 0;
-      Ep2DataOUTFlag = 0;
-      Ep3DataOUTFlag = 0;
-      Ep4DataOUTFlag = 0;
+          Ep1DataOUTFlag = 0;
+          Ep2DataOUTFlag = 0;
+          Ep3DataOUTFlag = 0;
+          Ep4DataOUTFlag = 0;
+        }
+      else                                   // awaken
+        {
+          Ep1DataINFlag = 1;
+          Ep2DataINFlag = 1;
+          Ep3DataINFlag = 1;
+          Ep4DataINFlag = 1;
 
+          Ep1DataOUTFlag = 0;
+          Ep2DataOUTFlag = 0;
+          Ep3DataOUTFlag = 0;
+          Ep4DataOUTFlag = 0;
+        }
+
+        R8_USB_INT_FG = RB_UIF_SUSPEND;
     }
-    else                                     // awaken
-    {
-      Ep1DataINFlag = 1;
-      Ep2DataINFlag = 1;
-      Ep3DataINFlag = 1;
-      Ep4DataINFlag = 1;
-
-      Ep1DataOUTFlag = 0;
-      Ep2DataOUTFlag = 0;
-      Ep3DataOUTFlag = 0;
-      Ep4DataOUTFlag = 0;
-    }
-
-    cdc_uart_sta_trans_step = 0;
-    ven_ep1_trans_step = 0;
-
-    R8_USB_INT_FG = RB_UIF_SUSPEND;
-  }
 }
 
 
@@ -1033,13 +1013,13 @@ void USBDevEPnINSetStatus (uint8_t ep_num, uint8_t type, uint8_t sta)
 *******************************************************************************/
 void USBParaInit (void)
 {
-  Ep1DataINFlag = 1;
+  Ep1DataINFlag  = 1;
   Ep1DataOUTFlag = 0;
-  Ep2DataINFlag = 1;
+  Ep2DataINFlag  = 1;
   Ep2DataOUTFlag = 0;
-  Ep3DataINFlag = 1;
+  Ep3DataINFlag  = 1;
   Ep3DataOUTFlag = 0;
-  Ep4DataINFlag = 1;
+  Ep4DataINFlag  = 1;
   Ep4DataOUTFlag = 0;
 }
 
@@ -1056,7 +1036,7 @@ void InitCDCDevice (void)
   /* Initialize the cache */
   USBParaInit ();
 
-  R8_USB_CTRL = 0x00;                                                 // Set the mode first
+  R8_USB_CTRL = 0x00;         // Set the mode first
 
 //  1. Endpoint Assignment:
 //  Endpoint 0
@@ -1097,7 +1077,8 @@ void InitCDCDevice (void)
   // DP/DM pull-down resistors are disabled
   R8_UDEV_CTRL = RB_UD_PD_DIS;
 
-  // Boot the USB device and DMA and automatically return the NAK until the interrupt flag is cleared during the outage
+  // Boot the USB device and DMA and automatically return the NAK
+  // until the interrupt flag is cleared during the outage
   R8_USB_CTRL = RB_UC_DEV_PU_EN | RB_UC_INT_BUSY | RB_UC_DMA_EN;
 
   // Clear the break sign
@@ -1146,9 +1127,7 @@ void InitUSBDefPara (void)
   UART0_OUT_Val = 0; // Custom modem signal (CH340 manual)
 
   for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
-  {
     usb_irq_flag[i] = 0;
-  }
 }
 
 
