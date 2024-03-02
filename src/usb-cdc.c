@@ -116,17 +116,6 @@ typedef struct __PACKED _LINE_CODE
 /* Data related to the two serial ports */
 LINE_CODE Uart0Para;
 
-#define CH341_REG_NUM     10
-uint8_t CH341_Reg_Add[CH341_REG_NUM];
-uint8_t CH341_Reg_val[CH341_REG_NUM];
-
-
-/* The serial port parameters are changed in vendor mode */
-uint8_t VENSer0ParaChange = 0;
-
-/* In vendor mode, the serial port sends a data flag */
-uint8_t VENSer0SendFlag = 0;
-
 /* Modem signal detection in vendor mode */
 uint8_t UART0_RTS_Val = 0; // Output indicates that the DTE requests the DCE to send data
 uint8_t UART0_DTR_Val = 0; // Output: The data terminal is ready
@@ -220,167 +209,6 @@ const uint8_t *pDescr;
 
 /* Endpoint state setting function */
 void USBDevEPnINSetStatus (uint8_t ep_num, uint8_t type, uint8_t sta);
-
-/*******************************************************************************
-* Function Name  : CH341RegWrite
-* Description    : Write to the register of the CH341
-* Input          : reg_add: Write to the register address
-*                  reg_val: The value written to the register
-* Output         : None
-* Return         : None
-*******************************************************************************/
-void CH341RegWrite (uint8_t reg_add, uint8_t reg_val)
-{
-  uint8_t find_idx;
-  uint8_t find_flag;
-  uint8_t i;
-
-  find_flag = 0;
-  find_idx = 0;
-  for (i = 0; i < CH341_REG_NUM; i++)
-  {
-    if (CH341_Reg_Add[i] == reg_add)
-    {
-      find_flag = 1;
-      break;
-    }
-    if (CH341_Reg_Add[i] == 0xff)
-    {
-      find_flag = 0;
-      break;
-    }
-  }
-  find_idx = i;
-  if (find_flag)
-  {
-    CH341_Reg_val[find_idx] = reg_val;
-  }
-  else
-  {
-    CH341_Reg_Add[find_idx] = reg_add;
-    CH341_Reg_val[find_idx] = reg_val;
-  }
-
-  switch (reg_add)
-  {
-    case 0x06:break; // IO
-    case 0x07:break; // IO
-    case 0x18: // SFR_UART_CTRL --> parameter register of the serial port
-    {
-      uint8_t reg_uart_ctrl;
-      uint8_t data_bit_val;
-      uint8_t stop_bit_val;
-      uint8_t parity_val;
-      uint8_t break_en;
-
-      reg_uart_ctrl = reg_val;
-      /* Break bit */
-      break_en = (reg_uart_ctrl & 0x40) ? (0) : (1);
-//      SetUART0BreakENStatus (break_en);
-
-      data_bit_val = reg_uart_ctrl & 0x03;
-      if      (data_bit_val == 0x00) data_bit_val = HAL_UART_5_BITS_PER_CHAR;
-      else if (data_bit_val == 0x01) data_bit_val = HAL_UART_6_BITS_PER_CHAR;
-      else if (data_bit_val == 0x02) data_bit_val = HAL_UART_7_BITS_PER_CHAR;
-      else if (data_bit_val == 0x03) data_bit_val = HAL_UART_8_BITS_PER_CHAR;
-
-      stop_bit_val = reg_uart_ctrl & 0x04;
-      if (stop_bit_val) stop_bit_val = HAL_UART_TWO_STOP_BITS;
-      else              stop_bit_val = HAL_UART_ONE_STOP_BIT;
-
-      parity_val = reg_uart_ctrl & (0x38);
-      if      (parity_val == 0x00) parity_val = HAL_UART_NO_PARITY;
-      else if (parity_val == 0x08) parity_val = HAL_UART_ODD_PARITY;
-      else if (parity_val == 0x18) parity_val = HAL_UART_EVEN_PARITY;
-      else if (parity_val == 0x28) parity_val = HAL_UART_MARK_PARITY;
-      else if (parity_val == 0x38) parity_val = HAL_UART_SPACE_PARITY;
-
-      // Uart0Para.BaudRate;
-      Uart0Para.StopBits   = stop_bit_val;
-      Uart0Para.ParityType = parity_val;
-      Uart0Para.DataBits   = data_bit_val;
-
-      dg_log ("CH341 set para:%d %d %d break:%02x\r\n", data_bit_val, (int) stop_bit_val, parity_val, break_en);
-
-      // Set the registers directly
-      VENSer0ParaChange = 1;
-      break;
-    }
-    case 0x25: break;
-    case 0x27:
-    {
-      dg_log ("modem set:%02x\r\n", reg_val);
-//      SetUART0ModemVendorSta (reg_val);
-      break;
-    }
-  }
-}
-
-
-/*******************************************************************************
-* Function Name  : CH341RegRead
-* Description    : Reads the registers of the CH341
-* Input          : reg_add: The address of the register to be read
-*                  reg_val: The value of the read register holds the pointer
-* Output         : None
-* Return         : Register exists
-*******************************************************************************/
-uint8_t CH341RegRead (uint8_t reg_add, uint8_t *reg_val)
-{
-  uint8_t find_flag;
-  uint8_t i;
-
-  find_flag = 0;
-  *reg_val = 0;
-  for (i = 0; i < CH341_REG_NUM; i++)
-  {
-    if (CH341_Reg_Add[i] == reg_add)   // Locate the register with the same address
-    {
-      find_flag = 1;
-      *reg_val = CH341_Reg_val[i];
-      break;
-    }
-    if (CH341_Reg_Add[i] == 0xff)      // Find the first empty one at present
-    {
-      find_flag = 0;
-      *reg_val = 0x00;
-      break;
-    }
-  }
-
-  switch (reg_add)
-  {
-    case 0x06:
-    {
-      uint8_t  reg_pb_val = 0;
-      *reg_val = reg_pb_val;
-      break;
-    }
-    case 0x07:
-    {
-      uint8_t  reg_pc_val = 0;
-      *reg_val = reg_pc_val;
-      break;
-    }
-    case 0x18:   // SFR_UART_CTRL --> parameter register of the serial port
-    {
-      uint8_t  reg_uart_ctrl_val;
-      uint8_t  ram_uart_ctrl_val;
-
-      reg_uart_ctrl_val = R8_UART0_LCR;
-      // Reserve the break bit
-      ram_uart_ctrl_val = *reg_val;
-      reg_uart_ctrl_val |= (ram_uart_ctrl_val & 0x40);
-      *reg_val = reg_uart_ctrl_val;
-
-      break;
-    }
-    case 0x25:  break;
-  }
-
-  return find_flag;
-}
-
 
 /* endpoints enumeration */
 #define ENDP0    0x00
@@ -527,15 +355,6 @@ uint8_t Ep1DataOUTFlag ;
 uint8_t Ep3DataOUTFlag = 0;
 uint8_t Ep4DataOUTFlag = 0;
 
-/* CH341 related command frames */
-#define DEF_VEN_DEBUG_READ    0x95   /* Read two sets of registers */
-#define DEF_VEN_DEBUG_WRITE   0x9a   /* Write two sets of registers */
-#define DEF_VEN_UART_INIT     0xa1   /* Initialize the serial port */
-#define DEF_VEN_UART_M_OUT    0xa4   /* Set the MODEM signal output */
-#define DEF_VEN_BUF_CLEAR     0xb2   /* Clear incomplete data */
-#define DEF_VEN_I2C_CMD_X     0x54   /* Issue a command for the I2C interface and execute it immediately */
-#define DEF_VEN_DELAY_MS      0x5e   /* The specified time is delayed in milliseconds */
-#define DEF_VEN_GET_VER       0x5f   /* Get the chip version */
 
 /* Class requests */
 //  3.1 Requests---Abstract Control Model
@@ -601,7 +420,6 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
             // Data delivery of CH341
             Ep2DataOUTFlag = 1;
             Ep2DataOUTLen = len;
-            VENSer0SendFlag = 1;
             PFIC_DisableIRQ (USB_IRQn);
             R8_UEP2_CTRL = R8_UEP2_CTRL & 0xf3; // OUT_ACK
             PFIC_EnableIRQ (USB_IRQn);
@@ -625,7 +443,6 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
           // Data delivery of CH341
           Ep1DataOUTFlag = 1;
           Ep1DataOUTLen = len;
-          VENSer0SendFlag = 1;
           PFIC_DisableIRQ (USB_IRQn);
           R8_UEP1_CTRL = R8_UEP1_CTRL & 0xf3; // OUT_ACK
           PFIC_EnableIRQ (USB_IRQn);
@@ -649,343 +466,11 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
 
             /* Data direction */
             data_dir = USB_REQ_TYP_OUT;
-            if (UsbSetupBuf->bRequestType & USB_REQ_TYP_IN) data_dir = USB_REQ_TYP_IN;
+            if (UsbSetupBuf->bRequestType & USB_REQ_TYP_IN)
+              data_dir = USB_REQ_TYP_IN;
 
-            /* Vendor request */
-            if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_VENDOR)
-            {
-              switch (SetupReqCode)
-              {
-                case DEF_VEN_DEBUG_WRITE:  // Write two sets of 0x9a
-                {
-                  uint32_t bps = 0;
-                  uint8_t write_reg_add1;
-                  uint8_t write_reg_add2;
-                  uint8_t write_reg_val1;
-                  uint8_t write_reg_val2;
-
-                  len = 0;
-
-                  write_reg_add1 = Ep0Buffer[2];
-                  write_reg_add2 = Ep0Buffer[3];
-                  write_reg_val1 = Ep0Buffer[4];
-                  write_reg_val2 = Ep0Buffer[5];
-
-                  /* This group is the register that sets the baud rate */
-                  if ((write_reg_add1 == 0x12) && (write_reg_add2 == 0x13))
-                  {
-                    /* Baud rate processing uses calculated values */
-                    if ((UsbSetupBuf->wIndexL==0x87) && (UsbSetupBuf->wIndexH==0xf3))
-                    {
-                      bps = 921600;  // 13 * 921600 = 11980800
-                    }
-                    else if ((UsbSetupBuf->wIndexL==0x87) && (UsbSetupBuf->wIndexH==0xd9))
-                    {
-                      bps = 307200;  // 39 * 307200 = 11980800
-                    }
-
-                    // System Frequency: 36923077
-                    else if (UsbSetupBuf->wIndexL == 0x88)
-                    {
-                      uint32_t CalClock;
-                      uint8_t CalDiv;
-
-                      CalClock = 36923077 / 8;
-                      CalDiv = 0 - UsbSetupBuf->wIndexH;
-                      bps = CalClock / CalDiv;
-                    }
-                    else if (UsbSetupBuf->wIndexL == 0x89)
-                    {
-                      uint32_t CalClock;
-                      uint8_t CalDiv;
-
-                      CalClock = 36923077 / 8 / 256;
-                      CalDiv = 0 - UsbSetupBuf->wIndexH;
-                      bps = CalClock / CalDiv;
-                    }
-                    // System frequency: 32000000
-                    else if (UsbSetupBuf->wIndexL == 0x8a)
-                    {
-                      uint32_t CalClock;
-                      uint8_t CalDiv;
-
-                      CalClock = 32000000 / 8;
-                      CalDiv = 0 - UsbSetupBuf->wIndexH;
-                      bps = CalClock / CalDiv;
-                    }
-                    else if (UsbSetupBuf->wIndexL == 0x8b)
-                    {
-                      uint32_t CalClock;
-                      uint8_t CalDiv;
-
-                      CalClock = 32000000 / 8 / 256;
-                      CalDiv = 0 - UsbSetupBuf->wIndexH;
-                      bps = CalClock / CalDiv;
-                    }
-                    else  // 340
-                    {
-                      uint32_t CalClock;
-                      uint8_t CalDiv;
-
-                      // 115384
-                      if ((UsbSetupBuf->wIndexL & 0x7f) == 3)
-                      {
-                        CalClock = 6000000;
-                        CalDiv = 0 - UsbSetupBuf->wIndexH;
-                        bps = CalClock / CalDiv;
-                      }
-                      else if ((UsbSetupBuf->wIndexL & 0x7f) == 2)
-                      {
-                        CalClock = 750000;  // 6000000 / 8
-                        CalDiv = 0 - UsbSetupBuf->wIndexH;
-                        bps = CalClock / CalDiv;
-                      }
-                      else if ((UsbSetupBuf->wIndexL & 0x7f) == 1)
-                      {
-                        CalClock = 93750; // Divide by 64
-                        CalDiv = 0 - UsbSetupBuf->wIndexH;
-                        bps = CalClock / CalDiv;
-                      }
-                      else if ((UsbSetupBuf->wIndexL & 0x7f) == 0)
-                      {
-                        CalClock = 11719;  // About 512
-                        CalDiv = 0 - UsbSetupBuf->wIndexH;
-                        bps = CalClock / CalDiv;
-                      }
-                      else
-                      {
-                        bps = 115200;
-                      }
-                    }
-                    Uart0Para.BaudRate = bps;
-                    dg_log ("CH341 set bps:%d\r\n", (int) bps);
-                    // UART0BpsSet (bps);
-                  }
-                  else
-                  {
-                    CH341RegWrite (write_reg_add1, write_reg_val1);
-                    CH341RegWrite (write_reg_add2, write_reg_val2);
-                  }
-
-                  break;
-                }
-                case DEF_VEN_DEBUG_READ:   // Require callback data 0x95 /* Read two sets of registers */
-                {
-                  uint8_t read_reg_add1;
-                  uint8_t read_reg_add2;
-                  uint8_t read_reg_val1;
-                  uint8_t read_reg_val2;
-
-                  read_reg_add1 = UsbSetupBuf->wValueL;
-                  read_reg_add2 = UsbSetupBuf->wValueH;
-
-                  CH341RegRead (read_reg_add1, &read_reg_val1);
-                  CH341RegRead (read_reg_add2, &read_reg_val2);
-
-                  len = 2;
-                  pDescr = buf;
-                  buf[0] = read_reg_val1;
-                  buf[1] = read_reg_val2;
-                  SetupLen = len;
-                  memcpy (Ep0Buffer, pDescr, len);
-
-                  break;
-                }
-                // The A1 command also needs to initialize the serial port
-                case DEF_VEN_UART_INIT:  // Initialize the serial port 0xa1
-                {
-                  uint8_t reg_uart_ctrl;
-                  uint8_t  parity_val;
-                  uint8_t  data_bit_val;
-                  uint8_t  stop_bit_val;
-                  uint8_t  uart_reg1_val;
-                  uint8_t  uart_reg2_val;
-                  uint8_t  uart_set_m;
-
-                  len = 0;
-
-                  if (Ep0Buffer[2] & 0x80)
-                  {
-                    reg_uart_ctrl = Ep0Buffer[3];
-
-                    data_bit_val = reg_uart_ctrl & 0x03;
-                    if      (data_bit_val == 0x00) data_bit_val = HAL_UART_5_BITS_PER_CHAR;
-                    else if (data_bit_val == 0x01) data_bit_val = HAL_UART_6_BITS_PER_CHAR;
-                    else if (data_bit_val == 0x02) data_bit_val = HAL_UART_7_BITS_PER_CHAR;
-                    else if (data_bit_val == 0x03) data_bit_val = HAL_UART_8_BITS_PER_CHAR;
-
-                    stop_bit_val = reg_uart_ctrl & 0x04;
-                    if (stop_bit_val) stop_bit_val = HAL_UART_TWO_STOP_BITS;
-                    else stop_bit_val = HAL_UART_ONE_STOP_BIT;
-
-                    parity_val = reg_uart_ctrl & (0x38);
-                    if      (parity_val == 0x00) parity_val = HAL_UART_NO_PARITY;
-                    else if (parity_val == 0x08) parity_val = HAL_UART_ODD_PARITY;
-                    else if (parity_val == 0x18) parity_val = HAL_UART_EVEN_PARITY;
-                    else if (parity_val == 0x28) parity_val = HAL_UART_MARK_PARITY;
-                    else if (parity_val == 0x38) parity_val = HAL_UART_SPACE_PARITY;
-
-                    // Uart0Para.BaudRate;
-                    Uart0Para.StopBits = stop_bit_val;
-                    Uart0Para.ParityType = parity_val;
-                    Uart0Para.DataBits = data_bit_val;
-
-                    // Set the registers directly
-                   // UART0ParaSet (data_bit_val, stop_bit_val, parity_val);
-
-                    uart_set_m = 0;
-                    uart_reg1_val = UsbSetupBuf->wIndexL;
-                    uart_reg2_val = UsbSetupBuf->wIndexH;
-
-                    if (uart_reg1_val & (1<<6))  // Judgment No. 6
-                    {
-                      uart_set_m = 1;
-                    }
-                    else
-                    {
-                      uart_set_m = 1;
-                      uart_reg1_val = uart_reg1_val & 0xc7;
-                    }
-
-                    if (uart_set_m)
-                    {
-                      /* Baud rate processing uses calculated values */
-                      if ((uart_reg1_val == 0x87) && (uart_reg2_val == 0xf3))
-                      {
-                        bps = 921600;  // 13 * 921600 = 11980800
-                      }
-                      else if ((uart_reg1_val == 0x87) && (uart_reg2_val == 0xd9))
-                      {
-                        bps = 307200;  // 39 * 307200 = 11980800
-                      }
-
-                      // System Frequency: 36923077
-                      else if (uart_reg1_val == 0xc8)
-                      {
-                        uint32_t CalClock;
-                        uint8_t CalDiv;
-
-                        CalClock = 36923077 / 8;
-                        CalDiv = 0 - uart_reg2_val;
-                        bps = CalClock / CalDiv;
-                      }
-                      else if (uart_reg1_val == 0xc9)
-                      {
-                        uint32_t CalClock;
-                        uint8_t CalDiv;
-
-                        CalClock = 36923077 / 8 / 256;
-                        CalDiv = 0 - uart_reg2_val;
-                        bps = CalClock / CalDiv;
-                      }
-                      // System frequency: 32000000
-                      else if (uart_reg1_val == 0xca)
-                      {
-                        uint32_t CalClock;
-                        uint8_t CalDiv;
-
-                        CalClock = 32000000 / 8;
-                        CalDiv = 0 - uart_reg2_val;
-                        bps = CalClock / CalDiv;
-                      }
-                      else if (uart_reg1_val == 0xcb)
-                      {
-                        uint32_t CalClock;
-                        uint8_t CalDiv;
-
-                        CalClock = 32000000 / 8 / 256;
-                        CalDiv = 0 - uart_reg2_val;
-                        bps = CalClock / CalDiv;
-                      }
-                      else  // 340
-                      {
-                        uint32_t CalClock;
-                        uint8_t CalDiv;
-
-                        // 115384
-                        if ((uart_reg1_val & 0x7f) == 3)
-                        {
-                          CalClock = 6000000;
-                          CalDiv = 0 - uart_reg2_val;
-                          bps = CalClock / CalDiv;
-                        }
-                        else if ((uart_reg1_val & 0x7f) == 2)
-                        {
-                          CalClock = 750000;  // 6000000 / 8
-                          CalDiv = 0 - uart_reg2_val;
-                          bps = CalClock / CalDiv;
-                        }
-                        else if ((uart_reg1_val & 0x7f) == 1)
-                        {
-                          CalClock = 93750; // Divide by 64
-                          CalDiv = 0 - uart_reg2_val;
-                          bps = CalClock / CalDiv;
-                        }
-                        else if ((uart_reg1_val & 0x7f) == 0)
-                        {
-                          CalClock = 11719;  // About 512
-                          CalDiv = 0 - uart_reg2_val;
-                          bps = CalClock / CalDiv;
-                        }
-                        else
-                        {
-                          bps = 115200;
-                        }
-                      }
-                      Uart0Para.BaudRate = bps;
-                      dg_log ("CH341 set bps:%d\r\n", (int) bps);
-                      // UART0BpsSet (bps);
-                    }
-                  }
-                  break;
-                }
-                case DEF_VEN_UART_M_OUT:  // Set the MODEM signal output 0xa4
-                {
-                  uint8_t reg_pb_out;
-
-                  len = 0;
-                  reg_pb_out = Ep0Buffer[2];
-                  if (reg_pb_out & (1<<4)) UART0_OUT_Val = 1;
-                  else UART0_OUT_Val = 0;
-                  break;
-                }
-                case DEF_VEN_BUF_CLEAR: // 0xb2  /* Clear incomplete data */
-                {
-                  len = 0;
-
-                  // Can be reinitialized
-                  VENSer0ParaChange = 1; // Reinitialize to erase all data
-                  break;
-                }
-                case DEF_VEN_I2C_CMD_X:  // 0x54 Issue the command for the I2C interface and execute it immediately
-                {
-                  len = 0;
-                  break;
-                }
-                case DEF_VEN_DELAY_MS:  // 0x5e Specify the time in milliseconds
-                {
-                  len = 0;
-                  break;
-                }
-                case DEF_VEN_GET_VER:   // 0x5e Get the chip version // Need to return data --> version number
-                {
-                  len = 2;
-                  pDescr = buf;
-                  buf[0] = 0x30;
-                  buf[1] = 0x00;
-                  SetupLen = len;
-                  memcpy (Ep0Buffer, pDescr, len);
-
-                  break;
-                }
-                default:
-                  // len = 0xff;
-                  len = 0;
-                  break;
-              }
-            }
             // Standard Request
-            else if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_STANDARD)
+            if ((UsbSetupBuf->bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_STANDARD)
             {
               switch (SetupReqCode)  // Request code
               {
@@ -1291,27 +776,6 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
               R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;  // The default packet is DATA1
               PFIC_EnableIRQ (USB_IRQn);
             }
-            else if (SetupReqCode ==  DEF_VEN_UART_INIT)  // 0xa1 Initialize the serial port
-            {
-              R8_UEP0_T_LEN = len;
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ (USB_IRQn);
-            }
-            else if (SetupReqCode ==  DEF_VEN_DEBUG_WRITE)  // 0x9a
-            {
-              R8_UEP0_T_LEN = len;
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ (USB_IRQn);
-            }
-            else if (SetupReqCode ==  DEF_VEN_UART_M_OUT)  // 0xa4
-            {
-              R8_UEP0_T_LEN = len;
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_CTRL = RB_UEP_R_TOG | RB_UEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;  // The default packet is DATA1
-              PFIC_EnableIRQ (USB_IRQn);
-            }
             else if (SetupReqCode ==  DEF_SET_CONTROL_LINE_STATE)  // 0x22
             {
               PFIC_DisableIRQ (USB_IRQn);
@@ -1390,16 +854,6 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
               R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_NAK | UEP_T_RES_NAK;
               PFIC_EnableIRQ (USB_IRQn);
 //              dg_log ("add in deal\r\n");
-
-              break;
-            }
-            // Maker reads
-            case DEF_VEN_DEBUG_READ:     // 0x95
-            case DEF_VEN_GET_VER:        // 0x5f
-            {
-              PFIC_DisableIRQ (USB_IRQn);
-              R8_UEP0_CTRL = RB_UEP_R_TOG|RB_UEP_T_TOG|UEP_R_RES_ACK | UEP_T_RES_NAK;
-              PFIC_EnableIRQ (USB_IRQn);
 
               break;
             }
@@ -1679,16 +1133,8 @@ void InitUSBDefPara (void)
   Uart0Para.ParityType = HAL_UART_NO_PARITY;
   Uart0Para.StopBits = HAL_UART_ONE_STOP_BIT;
 
-  VENSer0ParaChange = 0;
-  VENSer0SendFlag = 0;
   CDCSetSerIdx = 0;
   CDCSer0ParaChange = 0;
-
-  for (i = 0; i < CH341_REG_NUM; i++)
-  {
-    CH341_Reg_Add[i] = 0xff;
-    CH341_Reg_val[i] = 0x00;
-  }
 
   UART0_DCD_Val = 0;
   UART0_RI_Val = 0;
