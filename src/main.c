@@ -22,6 +22,8 @@ static int matrix_mask_a = 0;
 static int matrix_mask_b = 0;
 
 
+static volatile int ticks = 0;
+
 __INTERRUPT
 __HIGH_CODE
 void
@@ -31,6 +33,8 @@ TMR0_IRQHandler (void)
   static int count = 0;
   uint8_t x, y;
   int r;
+
+  ticks ++;
 
   if (TMR0_GetITFlag (TMR0_3_IT_CYC_END))
     {
@@ -107,6 +111,10 @@ board_pin_init (void)
 int
 main ()
 {
+  int i;
+  uint8_t *indata;
+  uint8_t indata_len = 0;
+
   SetSysClock (CLK_SOURCE_PLL_60MHz);
 
   board_pin_init ();
@@ -121,7 +129,17 @@ main ()
 
   while (1)
     {
-      USB_IRQProcessHandler ();
+      indata_len = 0;
+      USB_IRQProcessHandler (&indata, &indata_len);
+
+      for (i = 0; i < indata_len; i++)
+        indata[i] ^= 0x20;
+
+      if (indata_len > 0)
+        SendUSBData (indata, indata_len);
+
+    //if ((ticks % 10000) == 0)
+    //  SendUSBData ("a\r\n", 3);
     }
 }
 

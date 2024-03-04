@@ -371,14 +371,14 @@ uint8_t Ep4DataOUTFlag = 0;
 #define DEF_SERIAL_STATE               0x20
 
 
-void USB_IRQProcessHandler (void)   /* USB interrupt service program */
+void USB_IRQProcessHandler (uint8_t **indata, uint8_t *indata_len)   /* USB interrupt service program */
 {
   static uint8_t *pDescr;
   uint8_t   len;
   uint8_t   data_dir = 0;   // Data direction
   uint8_t   i;
 
-  for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
+  // for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
     {
       i = usb_irq_r_idx;
 
@@ -431,6 +431,8 @@ void USB_IRQProcessHandler (void)   /* USB interrupt service program */
                 // Data delivery of CH341
                 Ep1DataOUTFlag = 1;
                 Ep1DataOUTLen = len;
+                *indata = Ep1OUTDataBuf;
+                *indata_len = len;
                 PFIC_DisableIRQ (USB_IRQn);
                 R8_UEP1_CTRL = R8_UEP1_CTRL & 0xf3; // OUT_ACK
                 PFIC_EnableIRQ (USB_IRQn);
