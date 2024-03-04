@@ -21,6 +21,25 @@ static const uint8_t matrixpins[NUM_PINS] = {
 static int matrix_mask_a = 0;
 static int matrix_mask_b = 0;
 
+static uint8_t fb[2][(((NUM_PINS-1) + 7)/8) * (NUM_PINS-1)] = {
+  {  1,  2,  3,  4,  5,  6,  7,  8,  9, 10,
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+    31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+    51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+    61, 62, 63, 64, 65, 66, },
+  {
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+    31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+    51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+    61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+    71, 72, 73, 74, 75, 76, },
+};
+static volatile uint8_t *next_fb = NULL;
+static volatile uint8_t *cur_fb = NULL;
 
 static volatile int ticks = 0;
 
@@ -32,7 +51,7 @@ TMR0_IRQHandler (void)
   static int cur_pos = 0;
   static int count = 0;
   uint8_t x, y;
-  int r;
+  uint8_t val;
 
   ticks ++;
 
@@ -47,17 +66,31 @@ TMR0_IRQHandler (void)
 
       cur_pos = (cur_pos + 1) % ((NUM_PINS-1)*(NUM_PINS-1));
       if (!cur_pos)
-        count++;
+        {
+          if (next_fb)
+            cur_fb = next_fb;
+          next_fb = NULL;
+          count++;
+        }
+
+      if (!cur_fb)
+        return;
 
       x = cur_pos / (NUM_PINS-1);
       y = cur_pos % (NUM_PINS-1);
 
-      r = ((3*x+y + count/3) / 8) % 2;
+      /* funky framebuffer mapping */
+      val = (cur_fb[y/2 + (x/4)*11] >> (y%2 + (x%4)*2)) & 0x01;
 
+      /* fix up swapped first two pixels */
+      if (cur_pos <= 1)
+        y = 1-y;
+
+      /* fix up for charlieplexing (y must be != x) */
       if (y >= x)
         y++;
 
-      if (r)
+      if (val)
         {
           int xbits = (1 << (matrixpins[x] & 0x7f));
           int ybits = (1 << (matrixpins[y] & 0x7f));
@@ -126,6 +159,8 @@ main ()
   InitUSBDefPara ();
   InitUSBDevice ();
   PFIC_EnableIRQ (USB_IRQn);
+
+  next_fb = fb[0];
 
   while (1)
     {
