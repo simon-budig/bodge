@@ -101,8 +101,6 @@ __aligned (4) uint8_t  Ep0Buffer[MAX_PACKET_SIZE];     // Endpoint 0 Transmit an
 
 // The upload address of endpoint 4
 __aligned (4) uint8_t  Ep1Buffer[MAX_PACKET_SIZE];     // IN
-__aligned (4) uint8_t  Ep2Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
-__aligned (4) uint8_t  Ep3Buffer[2*MAX_PACKET_SIZE];   // OUT & IN
 
 // Line Code structure
 typedef struct __PACKED _LINE_CODE
@@ -115,23 +113,6 @@ typedef struct __PACKED _LINE_CODE
 
 /* Data related to the two serial ports */
 LINE_CODE Uart0Para;
-
-/* Modem signal detection in vendor mode */
-uint8_t UART0_RTS_Val = 0; // Output indicates that the DTE requests the DCE to send data
-uint8_t UART0_DTR_Val = 0; // Output: The data terminal is ready
-uint8_t UART0_OUT_Val = 0; // Custom modem signal (CH340 manual)
-
-uint8_t UART0_DCD_Val    = 0;
-uint8_t UART0_DCD_Change = 0;
-
-uint8_t UART0_RI_Val    = 0;
-uint8_t UART0_RI_Change = 0;
-
-uint8_t UART0_DSR_Val    = 0;
-uint8_t UART0_DSR_Change = 0;
-
-uint8_t UART0_CTS_Val    = 0;
-uint8_t UART0_CTS_Change = 0;
 
 /* The serial port set by CDC */
 uint8_t CDCSetSerIdx      = 0;
@@ -158,14 +139,6 @@ uint8_t Ep1DataINFlag = 0;
 uint8_t Ep1DataOUTFlag = 0;
 uint8_t Ep1DataOUTLen  = 0;
 __aligned (4) uint8_t Ep1OUTDataBuf[MAX_PACKET_SIZE];
-
-/* Endpoint 2 -- IN Status */
-uint8_t Ep2DataINFlag = 0;
-
-/* Endpoint 2 uploads data down */
-uint8_t Ep2DataOUTFlag = 0;
-uint8_t Ep2DataOUTLen  = 0;
-__aligned (4) uint8_t Ep2OUTDataBuf[MAX_PACKET_SIZE];
 
 /* Save the status of USB interrupts - > change the operation mode to several groups */
 #define USB_IRQ_FLAG_NUM     4
@@ -259,26 +232,6 @@ void USB_IRQHandler (void)
 
           switch (usb_irq_pid[usb_irq_w_idx] & 0x3f)    // Analyze the current endpoint
             {
-              case (UIS_TOKEN_OUT | 2):
-                if (R8_USB_INT_FG & RB_U_TOG_OK)
-                  {
-                    R8_UEP2_CTRL ^= RB_UEP_R_TOG;
-                    R8_UEP2_CTRL = (R8_UEP2_CTRL & 0xf3) | 0x08; // OUT_NAK
-                    /* Save the data */
-                    for (j = 0; j < (MAX_PACKET_SIZE/4); j++)
-                      ((uint32_t *) Ep2OUTDataBuf)[j] = ((uint32_t *) Ep2Buffer)[j];
-                  }
-                else  // Out-of-sync packets are dropped
-                  {
-                    usb_irq_flag[usb_irq_w_idx] = 0;
-                  }
-                break;
-
-              case (UIS_TOKEN_IN | 2):   // endpoint #2 Bulk endpoint upload completed
-                R8_UEP2_CTRL ^=  RB_UEP_T_TOG;
-                R8_UEP2_CTRL = (R8_UEP2_CTRL & 0xfc) | IN_NAK; // IN_NAK
-                break;
-
               case (UIS_TOKEN_OUT | 1):
                 if (R8_USB_INT_FG & RB_U_TOG_OK)
                   {
@@ -394,31 +347,6 @@ void USB_IRQProcessHandler (uint8_t **indata, uint8_t *indata_len)   /* USB inte
               case UIS_TOKEN_IN | 4:  // endpoint #4 Batch endpoint upload completed
                  Ep4DataINFlag = ~0;
                  break;
-
-              case UIS_TOKEN_IN | 3:  // endpoint #3 The bulk endpoint upload is complete
-                Ep3DataINFlag = ~0;
-                break;
-
-              case UIS_TOKEN_OUT | 2:    // endpoint #2 The batch endpoint upload is complete
-                dg_log ("usb_rec\n");
-                len = usb_irq_len[i];
-
-                // Ep2OUTDataBuf
-                for (int i = 0; i < len; i++)
-                  dg_log ("%02x  ", Ep2OUTDataBuf[i]);
-                dg_log ("\n");
-
-                // Data delivery of CH341
-                Ep2DataOUTFlag = 1;
-                Ep2DataOUTLen = len;
-                PFIC_DisableIRQ (USB_IRQn);
-                R8_UEP2_CTRL = R8_UEP2_CTRL & 0xf3; // OUT_ACK
-                PFIC_EnableIRQ (USB_IRQn);
-                break;
-
-              case UIS_TOKEN_IN | 2:  // endpoint #2 Bulk endpoint upload completed
-                Ep2DataINFlag = 1;
-                break;
 
               case UIS_TOKEN_OUT | 1:    // endpoint #1 Batch endpoint upload is complete
                 dg_log ("usb_rec\n");
@@ -582,13 +510,9 @@ void USB_IRQProcessHandler (uint8_t **indata, uint8_t *indata_len)   /* USB inte
 
                                   // The state variable is reset
                                   Ep1DataINFlag = 1;
-                                  Ep2DataINFlag = 1;
-                                  Ep3DataINFlag = 1;
                                   Ep4DataINFlag = 1;
 
                                   Ep1DataOUTFlag = 0;
-                                  Ep2DataOUTFlag = 0;
-                                  Ep3DataOUTFlag = 0;
                                   Ep4DataOUTFlag = 0;
                                 }
                               else if ((UsbSetupBuf->bRequestType & USB_REQ_RECIP_MASK) == USB_REQ_RECIP_ENDP)  // endpoint
@@ -924,7 +848,7 @@ void USB_IRQProcessHandler (uint8_t **indata, uint8_t *indata_len)   /* USB inte
     {
       R8_UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
       R8_UEP1_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK;
-      R8_UEP2_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK;
+      R8_UEP2_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
       R8_UEP3_CTRL = UEP_T_RES_NAK;
       R8_UEP4_CTRL = UEP_T_RES_NAK;
 
@@ -940,25 +864,17 @@ void USB_IRQProcessHandler (uint8_t **indata, uint8_t *indata_len)   /* USB inte
           CDCSer0ParaChange = 1;
 
           Ep1DataINFlag = 0;
-          Ep2DataINFlag = 0;
-          Ep3DataINFlag = 0;
           Ep4DataINFlag = 0;
 
           Ep1DataOUTFlag = 0;
-          Ep2DataOUTFlag = 0;
-          Ep3DataOUTFlag = 0;
           Ep4DataOUTFlag = 0;
         }
       else                                   // awaken
         {
           Ep1DataINFlag = 1;
-          Ep2DataINFlag = 1;
-          Ep3DataINFlag = 1;
           Ep4DataINFlag = 1;
 
           Ep1DataOUTFlag = 0;
-          Ep2DataOUTFlag = 0;
-          Ep3DataOUTFlag = 0;
           Ep4DataOUTFlag = 0;
         }
 
@@ -1000,10 +916,6 @@ void USBParaInit (void)
 {
   Ep1DataINFlag  = 1;
   Ep1DataOUTFlag = 0;
-  Ep2DataINFlag  = 1;
-  Ep2DataOUTFlag = 0;
-  Ep3DataINFlag  = 1;
-  Ep3DataOUTFlag = 0;
   Ep4DataINFlag  = 1;
   Ep4DataOUTFlag = 0;
 }
@@ -1032,14 +944,8 @@ void InitCDCDevice (void)
 
   R8_UEP4_1_MOD = RB_UEP4_TX_EN|RB_UEP1_TX_EN|RB_UEP1_RX_EN;
 
-  /* Single 64-Byte Receive Buffer (OUT), Single 64-Byte Send Buffer (IN) */
-  R8_UEP2_3_MOD = RB_UEP2_RX_EN | RB_UEP2_TX_EN | RB_UEP3_TX_EN;
-
   R16_UEP0_DMA = (uint16_t) (uint32_t) &Ep0Buffer[0];
   R16_UEP1_DMA = (uint16_t) (uint32_t) &Ep1Buffer[0];
-  R16_UEP2_DMA = (uint16_t) (uint32_t) &Ep2Buffer[0];
-  R16_UEP3_DMA = (uint16_t) (uint32_t) &Ep3Buffer[0];
-  // R16_UEP4_DMA = (uint16_t) (uint32_t) &Ep2Buffer[0];
 
   /* ENDPOINT 0 STATE: OUT---ACK IN--NAK */
   R8_UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
@@ -1048,10 +954,10 @@ void InitCDCDevice (void)
   R8_UEP1_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK;
 
   /* Endpoint 2 state: OUT--ACK IN--NAK auto-flip */
-  R8_UEP2_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK;
+  R8_UEP2_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
 
   /* Endpoint 3 state: IN--NAK auto-flip */
-  R8_UEP3_CTRL = UEP_T_RES_NAK;
+  R8_UEP3_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
 
   /* Endpoint 4 state: IN--NAK manual flip */
   R8_UEP4_CTRL = UEP_T_RES_NAK;
@@ -1101,15 +1007,6 @@ void InitUSBDefPara (void)
 
   CDCSetSerIdx = 0;
   CDCSer0ParaChange = 0;
-
-  UART0_DCD_Val = 0;
-  UART0_RI_Val = 0;
-  UART0_DSR_Val = 0;
-  UART0_CTS_Val = 0;
-
-  UART0_RTS_Val = 0; // Output indicates that the DTE requests the DCE to send data
-  UART0_DTR_Val = 0; // Output: The data terminal is ready
-  UART0_OUT_Val = 0; // Custom modem signal (CH340 manual)
 
   for (i = 0; i < USB_IRQ_FLAG_NUM; i++)
     usb_irq_flag[i] = 0;
