@@ -4,6 +4,9 @@
 
 #include "CH58x_common.h"
 
+#include "gfxfont.h"
+#include "font.h"
+
 #define PA(x) (0x80 | x)
 #define PB(x) (0x00 | x)
 
@@ -141,6 +144,51 @@ board_pin_init (void)
 }
 
 
+void
+set_pixel (uint8_t *fb, int x, int y)
+{
+  if (x < 0 || x >= 44 || y < 0 || y >= 11)
+    return;
+
+  fb[(x/8)*11 + y] |= (1 << (x%8));
+}
+
+void
+render_text (const char *text,
+             int         x0,
+             int         y0,
+             uint8_t    *fb)
+{
+  int i, j;
+  uint8_t val;
+  const GFXfont *font = &FiraSansCondensed_SemiBold6pt7b;
+  const GFXglyph *glyph;
+
+  memset (fb, 0, 66);
+
+  for (i = 0; text[i] != '\0'; i++)
+    {
+      const uint8_t *bitdata;
+
+      if (text[i] < font->first || text[i] >= font->last)
+        continue;
+
+      glyph = &font->glyph[text[i] - font->first];
+      bitdata = font->bitmap + glyph->bitmapOffset;
+      for (j = 0; j < glyph->width * glyph->height; j++)
+        {
+          val = (bitdata[j/8] >> (7-(j%8))) & 0x01;
+          if (!val)
+            continue;
+          set_pixel (fb,
+                     x0 + glyph->xOffset + j % glyph->width,
+                     y0 + glyph->yOffset + j / glyph->width);
+        }
+
+      x0 += glyph->xAdvance;
+    }
+}
+
 int
 main ()
 {
@@ -161,6 +209,10 @@ main ()
   PFIC_EnableIRQ (USB_IRQn);
 
   next_fb = fb[0];
+
+  render_text ("Simon", 0, 9, fb[1]);
+
+  next_fb = fb[1];
 
   while (1)
     {
