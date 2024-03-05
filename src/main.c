@@ -171,7 +171,7 @@ render_text (const char *text,
       x0 = -x0;
       for (i = 0; text[i] != '\0'; i++)
         {
-          if (text[i] < font->first || text[i] >= font->last)
+          if (text[i] < font->first || text[i] > font->last)
             continue;
           glyph = &font->glyph[text[i] - font->first];
           x0 -= glyph->xAdvance;
@@ -182,7 +182,7 @@ render_text (const char *text,
     {
       const uint8_t *bitdata;
 
-      if (text[i] < font->first || text[i] >= font->last)
+      if (text[i] < font->first || text[i] > font->last)
         continue;
 
       glyph = &font->glyph[text[i] - font->first];
