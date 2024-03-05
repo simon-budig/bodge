@@ -161,10 +161,22 @@ render_text (const char *text,
 {
   int i, j;
   uint8_t val;
-  const GFXfont *font = &FiraSansCondensed_SemiBold6pt7b;
+  const GFXfont *font = &bbtempo8pt7b;
   const GFXglyph *glyph;
 
   memset (fb, 0, 66);
+
+  if (x0 < 0)
+    {
+      x0 = -x0;
+      for (i = 0; text[i] != '\0'; i++)
+        {
+          if (text[i] < font->first || text[i] >= font->last)
+            continue;
+          glyph = &font->glyph[text[i] - font->first];
+          x0 -= glyph->xAdvance;
+        }
+    }
 
   for (i = 0; text[i] != '\0'; i++)
     {
@@ -195,6 +207,8 @@ main ()
   int i;
   uint8_t *indata;
   uint8_t indata_len = 0;
+  char text[] = "                      ";
+  int db = 0;
 
   SetSysClock (CLK_SOURCE_PLL_60MHz);
 
@@ -208,11 +222,7 @@ main ()
   InitUSBDevice ();
   PFIC_EnableIRQ (USB_IRQn);
 
-  next_fb = fb[0];
-
-  render_text ("Simon", 0, 9, fb[1]);
-
-  next_fb = fb[1];
+  next_fb = fb[db];
 
   while (1)
     {
@@ -220,13 +230,18 @@ main ()
       USB_IRQProcessHandler (&indata, &indata_len);
 
       for (i = 0; i < indata_len; i++)
-        indata[i] ^= 0x20;
+        {
+          memmove (text, text + 1, sizeof (text) - 1);
+          text[sizeof (text) - 2] = indata[i];
+        }
 
       if (indata_len > 0)
-        SendUSBData (indata, indata_len);
-
-    //if ((ticks % 10000) == 0)
-    //  SendUSBData ("a\r\n", 3);
+        {
+          db = 1 - db;
+          render_text (text, -44, 8, fb[db]);
+          next_fb = fb[db];
+          SendUSBData (indata, indata_len);
+        }
     }
 }
 
