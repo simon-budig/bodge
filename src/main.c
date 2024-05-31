@@ -241,6 +241,12 @@ main ()
           render_text (text, -44, 8, fb[db]);
           next_fb = fb[db];
           SendUSBData (indata, indata_len);
+
+          if (indata[0] == '!')
+            {
+              PFIC_DisableIRQ (TMR0_IRQn);
+              asm volatile ("j 0x00");
+            }
         }
     }
 }
